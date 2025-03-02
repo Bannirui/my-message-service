@@ -17,16 +17,16 @@ public class MmsClientLogger {
         System.setProperty(MMS_LOG_ROOT, mmsClientLogRoot);
         String mmsClientLogLevel = System.getProperty(MMS_LOG_LEVEL, "info");
         System.setProperty(MMS_LOG_LEVEL, mmsClientLogLevel);
-        if (isLoadConfig) {
-            try {
-                Class<?> joranConfigurator = Class.forName("org.apache.logging.log4j.core.config.Configurator");
-                Method initialize = joranConfigurator.getDeclaredMethod("initialize", String.class, String.class);
-                initialize.invoke(joranConfigurator, "log4j2", log4j2ResourceFile);
-            } catch (Exception e) {
-                throw new MmsException("创建logger失败", e);
-            }
-        }
-        return LoggerFactory.getLogger(loggerName);
+        // if (isLoadConfig) {
+        //     try {
+        //         Class<?> joranConfigurator = Class.forName("org.apache.logging.log4j.core.config.Configurator");
+        //         Method initialize = joranConfigurator.getDeclaredMethod("initialize", String.class, String.class);
+        //         initialize.invoke(joranConfigurator, "log4j2", log4j2ResourceFile);
+        //     } catch (Exception e) {
+        //         throw new MmsException("创建logger失败", e);
+        //     }
+        // }
+        return LoggerFactory.getLogger(MmsClientLogger.class);
     }
 }
 
