@@ -1,13 +1,13 @@
 package com.github.bannirui.mms.client.common;
 
 import com.github.bannirui.mms.client.producer.SendType;
+
 import java.util.Map;
 
 public class MmsMessage extends SimpleMessage {
 
     //同步 异步 oneway
     private SendType sendType;
-
 
     // 消息属性列表 目前只支持RocketMQ
     private Map<String, String> properties;
@@ -24,6 +24,7 @@ public class MmsMessage extends SimpleMessage {
         super(key, tags, delayLevel, payload);
         this.sendType = sendType;
     }
+
     public MmsMessage(String key, String tags, int delayLevel, byte[] payload, SendType sendType, Map<String, String> properties) {
         super(key, tags, delayLevel, payload);
         this.sendType = sendType;

@@ -9,41 +9,10 @@ import com.github.bannirui.mms.common.KafkaVersion;
 import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.google.common.collect.Lists;
-import java.lang.reflect.Field;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.NoOffsetForPartitionException;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetCommitCallback;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
@@ -51,6 +20,17 @@ import org.apache.kafka.common.header.Headers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springside.modules.utils.net.NetUtil;
+
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
@@ -89,7 +69,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         this.kafkaProperties.put("group.id", this.metadata.getName());
         this.kafkaProperties.put("enable.auto.commit", false);
         this.kafkaProperties.put("client.id", metadata.getName() + "--" + NetUtil.getLocalHost() + "--" + ThreadLocalRandom.current().nextInt(100000));
-        String consumeFrom = ((ConsumerGroupMetadata)this.metadata).getConsumeFrom();
+        String consumeFrom = ((ConsumerGroupMetadata) this.metadata).getConsumeFrom();
         if (StringUtils.isEmpty(consumeFrom)) {
             this.kafkaProperties.put("auto.offset.reset", ConsumeFromWhere.EARLIEST.getName());
         } else if (ConsumeFromWhere.EARLIEST.getName().equalsIgnoreCase(consumeFrom)) {
@@ -104,7 +84,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         }
         logger.info("consumer {} start with param {}", this.instanceName, this.buildConsumerInfo(this.kafkaProperties));
         this.consumer = new KafkaConsumer<>(this.kafkaProperties);
-        this.consumer.subscribe(Lists.newArrayList(((ConsumerGroupMetadata)this.metadata).getBindingTopic()), new ConsumerRebalanceListener() {
+        this.consumer.subscribe(Lists.newArrayList(((ConsumerGroupMetadata) this.metadata).getBindingTopic()), new ConsumerRebalanceListener() {
             @Override
             public void onPartitionsRevoked(Collection<TopicPartition> collection) {
                 MmsConsumerProxy.logger.info("partition revoked for {} at {}", KafkaLiteConsumerProxy.this.metadata.getName(), LocalDateTime.now());
@@ -142,7 +122,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
     private String buildConsumerInfo(Properties properties) {
         StringBuilder stringBuilder = new StringBuilder();
-        properties.forEach((k,v)->{
+        properties.forEach((k, v) -> {
             stringBuilder.append(v).append(": ").append(v);
             stringBuilder.append(System.lineSeparator());
         });
@@ -154,13 +134,13 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         String threadName = "MmsKafkaPollThread-" + this.metadata.getName() + "-" + this.instanceName + LocalDateTime.now();
         KafkaVersion.checkVersion();
         Thread mmsPullThread = new Thread(() -> {
-            while(true) {
+            while (true) {
                 try {
                     if (this.running) {
                         try {
-                            ConsumerRecords<String, byte[]> records = this.consumer.poll(Duration.ofMillis((long)this.consumerPollTimeoutMs));
+                            ConsumerRecords<String, byte[]> records = this.consumer.poll(Duration.ofMillis((long) this.consumerPollTimeoutMs));
                             if (logger.isDebugEnabled()) {
-                                logger.debug("messaged pulled at {} for topic {} ", System.currentTimeMillis(), ((ConsumerGroupMetadata)this.metadata).getBindingTopic());
+                                logger.debug("messaged pulled at {} for topic {} ", System.currentTimeMillis(), ((ConsumerGroupMetadata) this.metadata).getBindingTopic());
                             }
                             this.submitRecords(records);
                             this.commitOffsets();
@@ -193,10 +173,10 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
     private void submitRecords(ConsumerRecords<String, byte[]> records) {
         if (records != null && !records.isEmpty()) {
-            Iterable<ConsumerRecord<String, byte[]>> recordsIter = records.records(((ConsumerGroupMetadata)this.metadata).getBindingTopic());
+            Iterable<ConsumerRecord<String, byte[]>> recordsIter = records.records(((ConsumerGroupMetadata) this.metadata).getBindingTopic());
             ArrayList<ConsumerRecord<String, byte[]>> consumerRecords = Lists.newArrayList(recordsIter);
             Map<Integer, List<ConsumerRecord<String, byte[]>>> consumerRecordsMap = consumerRecords.stream().collect(Collectors.groupingBy(ConsumerRecord::partition));
-            consumerRecordsMap.forEach((k,v)->{
+            consumerRecordsMap.forEach((k, v) -> {
                 TopicPartition topicPartition = new TopicPartition(v.getFirst().topic(), v.getFirst().partition());
                 ConsumeMessageService consumeMessageService = this.getOrCreateConsumeMessageService(topicPartition);
                 consumeMessageService.execute(v);
@@ -215,7 +195,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         this.commitsReadLock.lock();
         try {
             Map<TopicPartition, OffsetAndMetadata> commits = new HashMap<>();
-            this.offsets.forEach((k,v)-> v.forEach((key, val)-> commits.put(new TopicPartition(String.valueOf(key), key), new OffsetAndMetadata(val + 1L))));
+            this.offsets.forEach((k, v) -> v.forEach((key, val) -> commits.put(new TopicPartition(String.valueOf(key), key), new OffsetAndMetadata(val + 1L))));
             this.offsets.clear();
             return commits;
         } finally {
@@ -254,13 +234,13 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         if (properties.containsKey(MmsClientConfig.CONSUMER.CONSUME_BATCH_SIZE.getKey())) {
             this.consumeBatchSize = Integer.parseInt(String.valueOf(properties.get(MmsClientConfig.CONSUMER.CONSUME_BATCH_SIZE.getKey())));
         }
-        int threadsNumMin=0;
+        int threadsNumMin = 0;
         if (properties.containsKey(MmsClientConfig.CONSUMER.CONSUME_THREAD_MIN.getKey())) {
             threadsNumMin = Integer.parseInt(String.valueOf(properties.get(MmsClientConfig.CONSUMER.CONSUME_THREAD_MIN.getKey())));
         } else {
             threadsNumMin = Runtime.getRuntime().availableProcessors();
         }
-        int threadsNumMax=0;
+        int threadsNumMax = 0;
         if (properties.containsKey(MmsClientConfig.CONSUMER.CONSUME_THREAD_MAX.getKey())) {
             threadsNumMax = Integer.parseInt(String.valueOf(properties.get(MmsClientConfig.CONSUMER.CONSUME_THREAD_MAX.getKey())));
         } else {
@@ -269,7 +249,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         logger.info("kafka consumer thread set to min: {} max: {}", threadsNumMin, threadsNumMax);
         int orderlyConsumeThreadSize;
         if (!super.isOrderly) {
-            for(orderlyConsumeThreadSize = 0; orderlyConsumeThreadSize < threadsNumMax; ++orderlyConsumeThreadSize) {
+            for (orderlyConsumeThreadSize = 0; orderlyConsumeThreadSize < threadsNumMax; ++orderlyConsumeThreadSize) {
                 AbstractConsumerRunner consumerRunner = new ConcurrentlyConsumerRunner();
                 String threadName = "MmsKafkaMqConcurrentlyConsumeThread_" + this.metadata.getName() + "_" + orderlyConsumeThreadSize;
                 this.startConsumerThread(threadName, consumerRunner);
@@ -281,7 +261,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                 orderlyConsumeThreadSize = Integer.parseInt(String.valueOf(this.customizedProperties.get(MmsClientConfig.CONSUMER.ORDERLY_CONSUME_THREAD_SIZE.getKey())));
                 orderlyConsumeThreadSize = Math.max(threadsNumMin, orderlyConsumeThreadSize);
             }
-            for(int i = 0; i < orderlyConsumeThreadSize; ++i) {
+            for (int i = 0; i < orderlyConsumeThreadSize; ++i) {
                 AbstractConsumerRunner consumerRunner = new OrderConsumerRunner();
                 String threadName = "MmsKafkaMqOrderlyConsumeThread_" + this.metadata.getName() + "_" + i;
                 this.startConsumerThread(threadName, consumerRunner);
@@ -299,7 +279,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
     protected void decryptMsgBodyIfNecessary(ConsumerRecord<String, byte[]> msg) {
         Headers headers = msg.headers();
         Header header = headers.lastHeader("encrypt_mark");
-        if(Objects.nonNull(header)) {
+        if (Objects.nonNull(header)) {
             byte[] decryptedBody = MmsCryptoManager.decrypt(msg.topic(), msg.value());
             try {
                 // reflect
@@ -324,9 +304,9 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
     private List<ConsumerRecord<String, byte[]>> filterMsg(List<ConsumerRecord<String, byte[]>> records) {
         return records.stream()
-            .filter((record) -> super.msgFilter(this.getMqTagValue(record)))
-            .filter((consumerRecord) -> super.msgFilterByColor(this.getMqColorValue(consumerRecord)))
-            .collect(Collectors.toList());
+                .filter((record) -> super.msgFilter(this.getMqTagValue(record)))
+                .filter((consumerRecord) -> super.msgFilterByColor(this.getMqColorValue(consumerRecord)))
+                .collect(Collectors.toList());
     }
 
     private String showBatchMsgInfo(List<ConsumerRecord<String, byte[]>> records) {
@@ -435,7 +415,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         @Override
         public void doTask(List<ConsumerRecord<String, byte[]>> records) {
             try {
-                if(CollectionUtils.isEmpty(records)) {
+                if (CollectionUtils.isEmpty(records)) {
                     return;
                 }
                 List<ConsumerRecord<String, byte[]>> needConusmeList = KafkaLiteConsumerProxy.this.filterMsg(records);
@@ -456,9 +436,9 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     }
                 });
                 if (!KafkaLiteConsumerProxy.this.listener.isEasy() && !(KafkaLiteConsumerProxy.this.listener instanceof KafkaMessageListener)) {
-                    KafkaBatchMsgListener batchMsgListener = (KafkaBatchMsgListener)KafkaLiteConsumerProxy.this.listener;
+                    KafkaBatchMsgListener batchMsgListener = (KafkaBatchMsgListener) KafkaLiteConsumerProxy.this.listener;
                     long beginx = System.currentTimeMillis();
-                    while(true) {
+                    while (true) {
                         try {
                             MsgConsumedStatus statusx = batchMsgListener.onMessage(needConusmeList);
                             long duration;
@@ -478,12 +458,12 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     }
                     this.removeMessageAndCommitOffset(needConusmeList);
                 } else {
-                    KafkaMessageListener kafkaMessageListener = (KafkaMessageListener)KafkaLiteConsumerProxy.this.listener;
+                    KafkaMessageListener kafkaMessageListener = (KafkaMessageListener) KafkaLiteConsumerProxy.this.listener;
                     for (ConsumerRecord<String, byte[]> record : needConusmeList) {
                         long begin = System.currentTimeMillis();
                         if (KafkaLiteConsumerProxy.this.listener.isEasy()) {
                             ConsumeMessage consumeMessage = ConsumeMessage.parse(record);
-                            while(true) {
+                            while (true) {
                                 try {
                                     MsgConsumedStatus statusxx = kafkaMessageListener.onMessage(consumeMessage);
                                     long durationxx;
@@ -504,7 +484,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                             }
                             this.removeMessageAndCommitOffset(record);
                         } else {
-                            while(true) {
+                            while (true) {
                                 try {
                                     MsgConsumedStatus status = kafkaMessageListener.onMessage(record);
                                     long durationx;
@@ -541,7 +521,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         @Override
         public void doTask(List<ConsumerRecord<String, byte[]>> consumerRecords) {
             try {
-                if(CollectionUtils.isEmpty(consumerRecords)) {
+                if (CollectionUtils.isEmpty(consumerRecords)) {
                     return;
                 }
                 List<ConsumerRecord<String, byte[]>> needConusmeList = KafkaLiteConsumerProxy.this.filterMsg(consumerRecords);
@@ -563,7 +543,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                 });
                 long beginx;
                 if (KafkaLiteConsumerProxy.this.listener.isEasy() || KafkaLiteConsumerProxy.this.listener instanceof KafkaMessageListener) {
-                    KafkaMessageListener kafkaMessageListener = (KafkaMessageListener)KafkaLiteConsumerProxy.this.listener;
+                    KafkaMessageListener kafkaMessageListener = (KafkaMessageListener) KafkaLiteConsumerProxy.this.listener;
                     for (ConsumerRecord<String, byte[]> record : needConusmeList) {
                         beginx = System.currentTimeMillis();
                         if (KafkaLiteConsumerProxy.this.listener.isEasy()) {
@@ -591,7 +571,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                         }
                     }
                 } else {
-                    KafkaBatchMsgListener kafkaBatchMsgListener = (KafkaBatchMsgListener)KafkaLiteConsumerProxy.this.listener;
+                    KafkaBatchMsgListener kafkaBatchMsgListener = (KafkaBatchMsgListener) KafkaLiteConsumerProxy.this.listener;
                     long begin = System.currentTimeMillis();
                     try {
                         kafkaBatchMsgListener.onMessage(needConusmeList);
@@ -623,12 +603,12 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 try {
                     if (this.isRunning) {
                         try {
                             List<ConsumerRecord<String, byte[]>> msgs = new ArrayList<>(KafkaLiteConsumerProxy.this.consumeBatchSize);
-                            while(this.msgQueue.drainTo(msgs, KafkaLiteConsumerProxy.this.consumeBatchSize) <= 0) {
+                            while (this.msgQueue.drainTo(msgs, KafkaLiteConsumerProxy.this.consumeBatchSize) <= 0) {
                                 Thread.sleep(20L);
                             }
                             this.doTask(msgs);
@@ -661,7 +641,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
         protected void removeMessageAndCommitOffset(ConsumerRecord<String, byte[]> msg) {
             TopicPartition topicPartition = new TopicPartition(msg.topic(), msg.partition());
-            AbstractConsumeMessageService consumeMessageService = (AbstractConsumeMessageService)KafkaLiteConsumerProxy.this.getOrCreateConsumeMessageService(topicPartition);
+            AbstractConsumeMessageService consumeMessageService = (AbstractConsumeMessageService) KafkaLiteConsumerProxy.this.getOrCreateConsumeMessageService(topicPartition);
             long offset = consumeMessageService.removeMessage(msg);
             KafkaLiteConsumerProxy.this.addOffset(msg, offset);
             consumeMessageService.maybeNeedResume();
@@ -720,14 +700,14 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
         @Override
         public void execute(List<ConsumerRecord<String, byte[]>> consumerRecords) {
-            if(CollectionUtils.isEmpty(consumerRecords)) {
+            if (CollectionUtils.isEmpty(consumerRecords)) {
                 return;
             }
             this.putMessage(consumerRecords);
             if (this.isNeedPause()) {
                 KafkaLiteConsumerProxy.this.partitionOperateContext.addPausePartition(this.topicPartition);
             }
-            consumerRecords.forEach(msg->{
+            consumerRecords.forEach(msg -> {
                 AbstractConsumerRunner consumerRunner = this.selectConsumerRunner(msg);
                 consumerRunner.putMessage(msg);
             });
@@ -739,9 +719,9 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
             long result = -1L;
             try {
                 this.msgTreeMapWriteLock.lock();
-                if(MapUtils.isNotEmpty(this.msgTreeMap)) {
-                    records.forEach(record-> this.msgTreeMap.remove(record.offset()));
-                    if(MapUtils.isNotEmpty(this.msgTreeMap)) {
+                if (MapUtils.isNotEmpty(this.msgTreeMap)) {
+                    records.forEach(record -> this.msgTreeMap.remove(record.offset()));
+                    if (MapUtils.isNotEmpty(this.msgTreeMap)) {
                         result = this.msgTreeMap.firstKey();
                     }
                 }
@@ -755,9 +735,9 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
             long result = -1L;
             try {
                 this.msgTreeMapWriteLock.lock();
-                if(MapUtils.isNotEmpty(this.msgTreeMap)) {
+                if (MapUtils.isNotEmpty(this.msgTreeMap)) {
                     this.msgTreeMap.remove(record.offset());
-                    if(MapUtils.isNotEmpty(this.msgTreeMap)) result = this.msgTreeMap.firstKey();
+                    if (MapUtils.isNotEmpty(this.msgTreeMap)) result = this.msgTreeMap.firstKey();
                 }
             } finally {
                 this.msgTreeMapWriteLock.unlock();
@@ -777,11 +757,11 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         protected boolean isNeedPause() {
             this.msgTreeMapReadLock.lock();
             try {
-                if(MapUtils.isEmpty(this.msgTreeMap)) {
+                if (MapUtils.isEmpty(this.msgTreeMap)) {
                     return false;
                 }
                 return this.msgTreeMap.size() > KafkaLiteConsumerProxy.this.orderlyPartitionMaxConsumeRecords
-                    || this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey() > (long)KafkaLiteConsumerProxy.this.orderlyPartitionMaxConsumeRecords;
+                        || this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey() > (long) KafkaLiteConsumerProxy.this.orderlyPartitionMaxConsumeRecords;
             } finally {
                 this.msgTreeMapReadLock.unlock();
             }
@@ -790,7 +770,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         protected boolean isNeedResume() {
             this.msgTreeMapReadLock.lock();
             try {
-                if(MapUtils.isEmpty(this.msgTreeMap)) {
+                if (MapUtils.isEmpty(this.msgTreeMap)) {
                     return true;
                 }
                 if (this.msgTreeMap.size() >= KafkaLiteConsumerProxy.this.orderlyPartitionMaxConsumeRecords / 2) {

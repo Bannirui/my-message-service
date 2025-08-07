@@ -6,16 +6,19 @@ import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.TopicMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.slf4j.Logger;
+
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
 
 public class ProducerFactory {
 
     public static final Logger logger = MmsLogger.log;
 
+    // key=topic_name
     private final static Map<String, MmsProducerProxy> topicProducers = new ConcurrentHashMap<>();
 
     private ProducerFactory() {
@@ -87,9 +90,9 @@ public class ProducerFactory {
 
     private static MmsProducerProxy doGetProducer(String topic, String name) {
         String cacheName = topic + "_" + name;
-        if (topicProducers.get(cacheName) == null) {
+        if (Objects.isNull(topicProducers.get(cacheName))) {
             synchronized (topicProducers) {
-                if (topicProducers.get(cacheName) == null) {
+                if (Objects.isNull(topicProducers.get(cacheName))) {
                     MmsProducerProxy producer = null;
                     TopicMetadata metadata = null;
                     try {

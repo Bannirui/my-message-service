@@ -1,0 +1,7 @@
+CREATE TABLE `topic`
+(
+    `id`          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name`        VARCHAR(128) NOT NULL COMMENT '主题名称',
+    `status`      INT(10) NOT NULL DEFAULT 0 COMMENT '状态',
+    `create_date` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主题表';

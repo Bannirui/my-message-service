@@ -1,6 +1,7 @@
 package com.github.bannirui.mms.client;
 
-public interface MmsService {
+public interface LifeCycle {
     void start();
+
     void shutdown();
 }

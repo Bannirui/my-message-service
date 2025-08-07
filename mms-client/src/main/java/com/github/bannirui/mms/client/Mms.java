@@ -14,12 +14,13 @@ import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
 
-public class Mms implements MmsService {
+public class Mms implements LifeCycle {
 
     public static final Logger logger = MmsLogger.log;
 
@@ -42,7 +43,7 @@ public class Mms implements MmsService {
         running = true;
         reporter = new MmsStatsReporter();
         reporter.start(10, TimeUnit.SECONDS);
-        logger.info("mms initilized");
+        logger.info("mms initialized");
     }
 
     @Override

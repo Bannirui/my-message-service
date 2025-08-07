@@ -6,16 +6,13 @@ import com.github.bannirui.mms.common.MmsType;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.apache.zookeeper.*;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.zookeeper.AddWatchMode;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 
-public abstract class MmsProxy<K extends MmsMetrics> implements MmsService {
+public abstract class MmsProxy<K extends MmsMetrics> implements LifeCycle {
 
     protected MmsMetadata metadata;
 
@@ -37,11 +34,11 @@ public abstract class MmsProxy<K extends MmsMetrics> implements MmsService {
         } else {
             newMetadata = MmsProxy.this.getZkInstance().readConsumerGroupMetadata(MmsProxy.this.metadata.getName());
         }
-        if(Objects.isNull(newMetadata)) {
+        if (Objects.isNull(newMetadata)) {
             return;
         }
         MmsLogger.log.info("metadata {} change notified", newMetadata.toString());
-        if (!MmsProxy.this.metadata.getClusterMetadata().getBrokerType().equals(((MmsMetadata)newMetadata).getClusterMetadata().getBrokerType())) {
+        if (!MmsProxy.this.metadata.getClusterMetadata().getBrokerType().equals(((MmsMetadata) newMetadata).getClusterMetadata().getBrokerType())) {
             MmsLogger.log.error("BrokerType can't be change for topic or consumergroup when running");
         } else if (MmsProxy.this.metadata.equals(newMetadata)) {
             MmsLogger.log.info("ignore the change, for it's the same with before");
@@ -99,16 +96,16 @@ public abstract class MmsProxy<K extends MmsMetrics> implements MmsService {
 
     protected boolean isStatistic(String name) {
         return MmsConst.STATISTICS.PING_CONSUMER_NAME.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.PING_TOPIC_NAME.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_CONSUMER_CONSUMERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_CONSUMERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_CONSUMER_PRODUCERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_TOPIC_CONSUMERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_TOPIC_KAFKA_CONSUMERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_TOPIC_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
-            MmsConst.STATISTICS.STATISTICS_TOPIC_PRODUCERINFO.equalsIgnoreCase(name);
+                MmsConst.STATISTICS.PING_TOPIC_NAME.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_CONSUMER_CONSUMERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_CONSUMERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_CONSUMER_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_CONSUMER_PRODUCERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_TOPIC_CONSUMERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_TOPIC_KAFKA_CONSUMERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_TOPIC_KAFKA_PRODUCERINFO.equalsIgnoreCase(name) ||
+                MmsConst.STATISTICS.STATISTICS_TOPIC_PRODUCERINFO.equalsIgnoreCase(name);
     }
 
     private void unregisterName() {

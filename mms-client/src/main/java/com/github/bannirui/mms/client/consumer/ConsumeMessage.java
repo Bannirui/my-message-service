@@ -1,8 +1,9 @@
 package com.github.bannirui.mms.client.consumer;
 
-import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.rocketmq.common.message.MessageExt;
+
+import java.util.Properties;
 
 public class ConsumeMessage {
     private String topic;

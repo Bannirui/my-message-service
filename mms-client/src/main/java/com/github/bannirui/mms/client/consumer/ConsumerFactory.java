@@ -6,12 +6,13 @@ import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.slf4j.Logger;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
 
 public class ConsumerFactory {
 
@@ -42,7 +43,7 @@ public class ConsumerFactory {
                     logger.info("Consumer created {}", metadata.toString());
                     boolean isOrderly = false;
                     if (properties.containsKey(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY)) {
-                        isOrderly=Boolean.parseBoolean(properties.getProperty(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY));
+                        isOrderly = Boolean.parseBoolean(properties.getProperty(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY));
                     }
                     if (BrokerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
                         consumer = new RocketmqConsumerProxy(metadata, isOrderly, name, tags, properties, listener);

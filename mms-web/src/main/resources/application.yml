@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mms?useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 19920308
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  hikari:
+    maximum-pool-size: 10
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.github.bannirui.mms.dal.model

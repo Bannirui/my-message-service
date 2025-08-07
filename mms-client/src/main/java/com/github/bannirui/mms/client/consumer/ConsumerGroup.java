@@ -2,6 +2,7 @@ package com.github.bannirui.mms.client.consumer;
 
 import com.github.bannirui.mms.common.MmsConst;
 import com.google.common.collect.Sets;
+
 import java.util.Set;
 
 public class ConsumerGroup {

@@ -12,11 +12,12 @@ import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.github.bannirui.mms.stats.StatsInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 
 /**
  * 消费者代理 屏蔽中间件差异和细节
@@ -24,6 +25,7 @@ import org.slf4j.Logger;
  *     <li>kafka消息是{@link org.apache.kafka.clients.consumer.ConsumerRecord}</li>
  *     <li>rocketmq消息是{@link org.apache.rocketmq.common.message.MessageExt}</li>
  * </ul>
+ *
  * @param <T> 消息体类型
  */
 public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> implements Consumer {
@@ -126,11 +128,11 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
 
     protected boolean msgFilter(String mqTagValue) {
         return StringUtils.isBlank(MQ_TAG)
-            && StringUtils.isBlank(mqTagValue) || MQ_TAG.equals(mqTagValue);
+                && StringUtils.isBlank(mqTagValue) || MQ_TAG.equals(mqTagValue);
     }
 
     protected boolean msgFilterByColor(String mqColorValue) {
-        String releaseColor = ((ConsumerGroupMetadata)this.metadata).getReleaseStatus();
+        String releaseColor = ((ConsumerGroupMetadata) this.metadata).getReleaseStatus();
         if (null != releaseColor && !releaseColor.equals("all")) {
             if (releaseColor.equals("default") && StringUtils.isBlank(mqColorValue)) {
                 return true;

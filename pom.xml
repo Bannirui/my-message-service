@@ -26,6 +26,8 @@
     <modules>
         <module>mms-client</module>
         <module>mms-common</module>
+        <module>mms-web</module>
+        <module>mms-dal</module>
     </modules>
 
     <properties>
@@ -42,6 +44,16 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>mms-common</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>mms-dal</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>mms-client</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -86,6 +98,29 @@
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>2.2.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>3.0.5</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>3.5.5</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>3.5.5</version>
+            </dependency>
+
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>8.0.33</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

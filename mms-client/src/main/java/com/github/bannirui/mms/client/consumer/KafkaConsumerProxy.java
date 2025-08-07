@@ -12,49 +12,24 @@ import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.github.bannirui.mms.util.ExecutorServiceUtils;
 import com.github.bannirui.mms.util.ListUtil;
 import com.google.common.collect.Lists;
-import java.lang.reflect.Field;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.NoOffsetForPartitionException;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetCommitCallback;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, byte[]>> {
 
@@ -77,7 +52,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
 
     private void addOffset(ConsumerRecord<String, byte[]> record) {
         (this.offsets.computeIfAbsent(record.topic(), (v) -> new ConcurrentHashMap<>())).compute(record.partition(),
-            (k, v) -> v == null ? record.offset() : Math.max(v, record.offset()));
+                (k, v) -> v == null ? record.offset() : Math.max(v, record.offset()));
     }
 
     public KafkaConsumerProxy(MmsMetadata metadata, boolean order, String instanceName, Properties properties, MessageListener listener) {
@@ -138,7 +113,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                 collection.forEach(partition -> {
                     OffsetAndMetadata offset = KafkaConsumerProxy.this.consumer.committed(partition);
                     if (ConsumeFromWhere.LATEST.getName()
-                        .equalsIgnoreCase(String.valueOf(KafkaConsumerProxy.this.kafkaProperties.get("auto.offset.reset"))) && offset == null) {
+                            .equalsIgnoreCase(String.valueOf(KafkaConsumerProxy.this.kafkaProperties.get("auto.offset.reset"))) && offset == null) {
                         KafkaConsumerProxy.this.consumer.seek(partition, 0L);
                     }
                 });
@@ -153,18 +128,18 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             int orderlyConsumePartitionParallelism = 1;
             if (this.customizedProperties.containsKey(MmsClientConfig.CONSUMER.ORDERLY_CONSUME_PARTITION_PARALLELISM.getKey())) {
                 orderlyConsumePartitionParallelism = Integer.parseInt(
-                    String.valueOf(this.customizedProperties.get(MmsClientConfig.CONSUMER.ORDERLY_CONSUME_PARTITION_PARALLELISM.getKey())));
+                        String.valueOf(this.customizedProperties.get(MmsClientConfig.CONSUMER.ORDERLY_CONSUME_PARTITION_PARALLELISM.getKey())));
             }
             for (TopicPartition partition : topicPartitions) {
                 List<ExecutorService> singleExecutors = new ArrayList<>();
                 AtomicInteger index = new AtomicInteger(0);
                 for (int i = 0; i < orderlyConsumePartitionParallelism; ++i) {
                     singleExecutors.add(Executors.newSingleThreadExecutor((runnable) -> new Thread(runnable,
-                        "MmsKafkaOrderlyConsumeThread_" + this.metadata.getName() + "_partition_" + partition.partition() + "_" +
-                            index.incrementAndGet())));
+                            "MmsKafkaOrderlyConsumeThread_" + this.metadata.getName() + "_partition_" + partition.partition() + "_" +
+                                    index.incrementAndGet())));
                 }
                 this.consumeMessageServiceTable.computeIfAbsent(partition.partition(),
-                    (p) -> new ConsumeMessageOrderlyService(singleExecutors, topics[0], p));
+                        (p) -> new ConsumeMessageOrderlyService(singleExecutors, topics[0], p));
             }
         }
     }
@@ -190,7 +165,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                             ConsumerRecords<String, byte[]> records = this.consumer.poll(Duration.ofMillis(this.consumerPollTimeoutMs));
                             if (logger.isDebugEnabled()) {
                                 logger.debug("messaged pulled at {} for topic {} ", System.currentTimeMillis(),
-                                    ((ConsumerGroupMetadata) this.metadata).getBindingTopic());
+                                        ((ConsumerGroupMetadata) this.metadata).getBindingTopic());
                             }
                             if (listener instanceof KafkaBatchMsgListener) {
                                 this.submitBatchRecords(records, (KafkaBatchMsgListener) listener);
@@ -263,7 +238,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
         Map<TopicPartition, Long> highestOffsetMap = new HashMap<>();
         records.forEach((r) -> {
             highestOffsetMap.compute(new TopicPartition(r.topic(), r.partition()), (k, v) ->
-                v == null ? r.offset() : (r.offset() > v ? r.offset() : v));
+                    v == null ? r.offset() : (r.offset() > v ? r.offset() : v));
         });
         return highestOffsetMap;
     }
@@ -279,7 +254,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
     private synchronized Map<TopicPartition, OffsetAndMetadata> buildCommits() {
         Map<TopicPartition, OffsetAndMetadata> commits = new HashMap<>();
         this.offsets.forEach(
-            (k, v) -> v.forEach((key, val) -> commits.put(new TopicPartition(String.valueOf(key), key), new OffsetAndMetadata(val + 1L))));
+                (k, v) -> v.forEach((key, val) -> commits.put(new TopicPartition(String.valueOf(key), key), new OffsetAndMetadata(val + 1L))));
         this.offsets.clear();
         return commits;
     }
@@ -301,7 +276,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             ArrayList<ConsumerRecord<String, byte[]>> consumerRecords = Lists.newArrayList(recordsIter);
             if (super.isOrderly) {
                 Map<Integer, List<ConsumerRecord<String, byte[]>>> consumerRecordsMap =
-                    consumerRecords.stream().collect(Collectors.groupingBy(ConsumerRecord::partition));
+                        consumerRecords.stream().collect(Collectors.groupingBy(ConsumerRecord::partition));
                 consumerRecordsMap.forEach((partition, consumerRecord) -> {
                     this.consumeMessageServiceTable.get(partition).execute(consumerRecord);
                 });
@@ -310,8 +285,8 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                 CountDownLatch countDownLatch = new CountDownLatch(subList.size());
                 for (List<ConsumerRecord<String, byte[]>> recordList : subList) {
                     List<ConsumerRecord<String, byte[]>> needConusmeLst =
-                        recordList.stream().filter((record) -> this.msgFilter(this.getMqTagValue(record)))
-                            .filter((record) -> this.msgFilterByColor(this.getMqColorValue(record))).collect(Collectors.toList());
+                            recordList.stream().filter((record) -> this.msgFilter(this.getMqTagValue(record)))
+                                    .filter((record) -> this.msgFilterByColor(this.getMqColorValue(record))).collect(Collectors.toList());
                     needConusmeLst.forEach(this::decryptMsgBodyIfNecessary);
                     Runnable task = () -> {
                         boolean succ = false;
@@ -396,7 +371,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             ArrayList<ConsumerRecord<String, byte[]>> consumerRecords = Lists.newArrayList(recordsIter);
             if (super.isOrderly) {
                 Map<Integer, List<ConsumerRecord<String, byte[]>>> consumerRecordsMap =
-                    consumerRecords.stream().collect(Collectors.groupingBy(ConsumerRecord::partition));
+                        consumerRecords.stream().collect(Collectors.groupingBy(ConsumerRecord::partition));
                 consumerRecordsMap.forEach((partition, consumerRecordx) -> {
                     this.consumeMessageServiceTable.get(partition).execute(consumerRecordx);
                 });
@@ -405,7 +380,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                     ConsumerRecord<String, byte[]> consumerRecord = consumerRecords.get(i);
                     if (logger.isDebugEnabled()) {
                         logger.debug("consumerRecord submitted topic {} partition {} offset {}", consumerRecord.topic(), consumerRecord.partition(),
-                            consumerRecord.offset());
+                                consumerRecord.offset());
                     }
                     Runnable task = () -> {
                         boolean var13 = false;
@@ -440,7 +415,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                         this.mmsMetrics.userCostTimeMs().update(duration, TimeUnit.MILLISECONDS);
                                         if (logger.isDebugEnabled()) {
                                             logger.debug("consumerRecord  topic {} partition {} offset {} consumed {}", consumerRecord.topic(),
-                                                consumerRecord.partition(), consumerRecord.offset(), msgConsumedStatus.name());
+                                                    consumerRecord.partition(), consumerRecord.offset(), msgConsumedStatus.name());
                                             var13 = false;
                                         } else {
                                             var13 = false;
@@ -564,11 +539,11 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r,
-                        "MmsKafkaConcurrentlyConsumeThread_" + KafkaConsumerProxy.this.metadata.getName() + "_" + this.index.incrementAndGet());
+                            "MmsKafkaConcurrentlyConsumeThread_" + KafkaConsumerProxy.this.metadata.getName() + "_" + this.index.incrementAndGet());
                 }
             };
             ThreadPoolExecutor executor =
-                new ThreadPoolExecutor(threadsNumMin, threadsNumMax, 1000L, TimeUnit.MILLISECONDS, blockingQueue, threadFactory, policy);
+                    new ThreadPoolExecutor(threadsNumMin, threadsNumMax, 1000L, TimeUnit.MILLISECONDS, blockingQueue, threadFactory, policy);
             this.executors.add(executor);
         }
     }
@@ -639,7 +614,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             try {
                 Set<TopicPartition> assignment = KafkaConsumerProxy.this.consumer.assignment();
                 Set<Integer> commitOffsetPartitionSet =
-                    commitOffsetPartitions.stream().filter(assignment::contains).map(TopicPartition::partition).collect(Collectors.toSet());
+                        commitOffsetPartitions.stream().filter(assignment::contains).map(TopicPartition::partition).collect(Collectors.toSet());
                 if (MmsConsumerProxy.logger.isDebugEnabled()) {
                     MmsConsumerProxy.logger.debug("commitOffsets => partitions:{}", commitOffsetPartitionSet);
                 }
@@ -705,7 +680,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             for (ConsumerRecord<String, byte[]> consumerRecord : consumerRecords) {
                 while (!this.msgConsumeQueue.offer(consumerRecord)) {
                     MmsConsumerProxy.logger.warn("offer consumer record to msgConsumeQueue full {}, topicPartition:{}", LocalDateTime.now(),
-                        this.topicPartition);
+                            this.topicPartition);
                     try {
                         TimeUnit.MILLISECONDS.sleep(50L);
                     } catch (InterruptedException e) {
@@ -750,7 +725,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                                     break label249;
                                                 }
                                                 if (!KafkaConsumerProxy.super.msgFilterByColor(
-                                                    KafkaConsumerProxy.this.getMqColorValue(consumerRecord))) {
+                                                        KafkaConsumerProxy.this.getMqColorValue(consumerRecord))) {
                                                     succ = false;
                                                     break label262;
                                                 }
@@ -778,28 +753,28 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                             } finally {
                                                 if (succ) {
                                                     BlockingQueue bqx = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
-                                                        (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
+                                                            (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                                     while (!bqx.offer(consumerRecord)) {
                                                         MmsConsumerProxy.logger.warn(
-                                                            "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
-                                                            LocalDateTime.now(), this.topicPartition);
+                                                                "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
+                                                                LocalDateTime.now(), this.topicPartition);
                                                         KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                                         try {
                                                             TimeUnit.MILLISECONDS.sleep(50L);
                                                         } catch (InterruptedException var19) {
                                                             MmsConsumerProxy.logger.error(
-                                                                "interrupted when offer consumerRecord to msgConsumeQueue.");
+                                                                    "interrupted when offer consumerRecord to msgConsumeQueue.");
                                                         }
                                                     }
                                                     countDownLatch.countDown();
                                                 }
                                             }
                                             bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
-                                                (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
+                                                    (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                             while (!bq.offer(consumerRecord)) {
                                                 MmsConsumerProxy.logger.warn(
-                                                    "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
-                                                    LocalDateTime.now(), this.topicPartition);
+                                                        "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
+                                                        LocalDateTime.now(), this.topicPartition);
                                                 KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                                 try {
                                                     TimeUnit.MILLISECONDS.sleep(50L);
@@ -811,11 +786,11 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                             return;
                                         }
                                         bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
-                                            (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
+                                                (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                         while (!bq.offer(consumerRecord)) {
                                             MmsConsumerProxy.logger.warn(
-                                                "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
-                                                LocalDateTime.now(), this.topicPartition);
+                                                    "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
+                                                    LocalDateTime.now(), this.topicPartition);
                                             KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                             try {
                                                 TimeUnit.MILLISECONDS.sleep(50L);
@@ -827,11 +802,11 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                         return;
                                     }
                                     bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
-                                        (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
+                                            (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
                                     while (!bq.offer(consumerRecord)) {
                                         MmsConsumerProxy.logger.warn(
-                                            "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
-                                            LocalDateTime.now(), this.topicPartition);
+                                                "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
+                                                LocalDateTime.now(), this.topicPartition);
                                         KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                         try {
                                             TimeUnit.MILLISECONDS.sleep(50L);
@@ -843,11 +818,11 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                     return;
                                 }
                                 bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
-                                    (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
+                                        (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
                                 while (!bq.offer(consumerRecord)) {
                                     MmsConsumerProxy.logger.warn(
-                                        "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
-                                        LocalDateTime.now(), this.topicPartition);
+                                            "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
+                                            LocalDateTime.now(), this.topicPartition);
                                     KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                     try {
                                         TimeUnit.MILLISECONDS.sleep(50L);
