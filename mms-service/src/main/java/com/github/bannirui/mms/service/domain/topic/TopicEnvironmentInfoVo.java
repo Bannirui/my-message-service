@@ -1,28 +1,17 @@
 package com.github.bannirui.mms.service.domain.topic;
 
+import lombok.Data;
+
+@Data
 public class TopicEnvironmentInfoVo {
 
-    // 环境
-    private Integer environmentId;
-    // 集群
+    /**
+     * 集群
+     * @see com.github.bannirui.mms.dal.model.Server#id
+     */
     private Long serverId;
-
-    public TopicEnvironmentInfoVo() {
-    }
-
-    public Integer getEnvironmentId() {
-        return environmentId;
-    }
-
-    public void setEnvironmentId(Integer environmentId) {
-        this.environmentId = environmentId;
-    }
-
-    public Long getServerId() {
-        return serverId;
-    }
-
-    public void setServerId(Long serverId) {
-        this.serverId = serverId;
-    }
+    /**
+     * @see com.github.bannirui.mms.dal.model.Env#id
+     */
+    private Long envId;
 }

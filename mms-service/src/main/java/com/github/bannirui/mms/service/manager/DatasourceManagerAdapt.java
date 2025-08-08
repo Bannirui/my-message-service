@@ -5,13 +5,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DatasourceManagerAdapt<T extends DatasourceManager> {
 
-    private final Map<Integer, T> envDatasourceMap = new ConcurrentHashMap<>();
+    private final Map<Long, T> envDatasourceMap = new ConcurrentHashMap<>();
 
-    public T getDatasource(int env) {
+    public T getDatasource(long env) {
         return this.envDatasourceMap.get(env);
     }
 
-    protected T reload(Integer env, T dataSourceManager) {
+    protected T reload(Long env, T dataSourceManager) {
         synchronized (this.envDatasourceMap) {
             this.rm(env);
             this.envDatasourceMap.put(env, dataSourceManager);
@@ -19,7 +19,7 @@ public class DatasourceManagerAdapt<T extends DatasourceManager> {
         return this.getDatasource(env);
     }
 
-    private void rm(Integer env) {
+    private void rm(Long env) {
         synchronized (this.envDatasourceMap) {
             if (this.envDatasourceMap.containsKey(env)) {
                 this.envDatasourceMap.remove(env).destroy();

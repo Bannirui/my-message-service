@@ -1,50 +1,43 @@
 package com.github.bannirui.mms.dal.model;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
 
-import java.time.LocalDateTime;
-
+@Data
 @TableName(value = "topic")
 public class Topic {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Integer status;
+
+    /**
+     * 申请人
+     */
+    private Long userId;
+    /**
+     * mq主题名
+     */
     private String name;
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createDate;
+    /**
+     * 给哪个应用服务的
+     */
+    private Long appId;
+    /**
+     * 发送速度
+     * 条/秒
+     */
+    private Integer tps;
+    /**
+     * 消息体大小
+     * 字节
+     */
+    private Integer msgSz;
 
-    public Topic() {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public LocalDateTime getCreateDate() {
-        return createDate;
-    }
-
-    public void setCreateDate(LocalDateTime createDate) {
-        this.createDate = createDate;
-    }
+    /**
+     * 申请 审批
+     */
+    private Integer status;
+    private Integer partitions;
+    private Integer replication;
 }

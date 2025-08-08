@@ -19,8 +19,8 @@ public class WebZkSelector implements ZkSelector {
 
     @Override
     public MmsZkClient select() {
-        Integer env = MmsContextManager.getEnv();
-        Assert.that(Objects.nonNull(env) && !Objects.equals(0, env), "The current environment is not specified");
+        Long env = MmsContextManager.getEnv();
+        Assert.that(Objects.nonNull(env) && !Objects.equals(0L, env), "The current environment is not specified");
         ZkDatasourceManager zkDatasourceManager = this.zkDatasourceManagerAdapt.getDatasource(env);
         return Objects.isNull(zkDatasourceManager) ? null : zkDatasourceManager.getZkClient();
     }

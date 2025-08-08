@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ZkDatasourceManagerAdapt extends DatasourceManagerAdapt<ZkDatasourceManager> {
 
-    public ZkDatasourceManager reload(Integer env, String zkUrl) {
+    public ZkDatasourceManager reload(Long env, String zkUrl) {
         ZkDatasourceManager zkDatasourceManager = new ZkDatasourceManager(zkUrl);
         return super.reload(env, zkDatasourceManager);
     }

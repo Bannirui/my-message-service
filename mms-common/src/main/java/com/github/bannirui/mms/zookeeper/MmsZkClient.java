@@ -207,7 +207,7 @@ public class MmsZkClient extends ZooKeeper {
             try {
                 clusterProperties = this.parseProperties(clusterData);
                 metadata.setBootAddr(clusterProperties.getProperty("bootAddr"));
-                metadata.setBrokerType(BrokerType.parseFrom(clusterProperties.getProperty("brokerType")));
+                metadata.setBrokerType(BrokerType.getByCode(Integer.valueOf(clusterProperties.getProperty("brokerType"))));
                 metadata.setClusterName(clusterName);
                 metadata.setServerIps(clusterProperties.getProperty("serverIps"));
                 return metadata;
@@ -379,7 +379,7 @@ public class MmsZkClient extends ZooKeeper {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("bootAddr=" + clusterMetadata.getBootAddr());
         stringBuilder.append(System.lineSeparator());
-        stringBuilder.append("brokerType=" + clusterMetadata.getBrokerType().getName());
+        stringBuilder.append("brokerType=" + clusterMetadata.getBrokerType().getDesc());
         stringBuilder.append(System.lineSeparator());
         stringBuilder.append("serverIps=" + clusterMetadata.getServerIps());
         return stringBuilder.toString();

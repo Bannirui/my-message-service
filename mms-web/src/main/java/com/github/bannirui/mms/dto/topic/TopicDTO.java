@@ -6,7 +6,13 @@ import java.util.List;
 
 public class TopicDTO {
 
+    /**
+     * @see com.github.bannirui.mms.dal.model.Topic#id
+     */
     private Long id;
+    /**
+     * @see com.github.bannirui.mms.dal.model.Topic#name
+     */
     private String name;
 
     private List<TopicEnvironmentInfoVo> environments;

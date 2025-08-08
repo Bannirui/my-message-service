@@ -1,5 +1,6 @@
 package com.github.bannirui.mms.service.router;
 
+import com.github.bannirui.mms.metadata.TopicMetadata;
 import com.github.bannirui.mms.service.selector.ZkSelector;
 import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
@@ -22,5 +23,9 @@ public class ZkRouter {
         MmsZkClient zkClient = this.zkSelector.select();
         Assert.that(Objects.nonNull(zkClient), "当前环境没有配置zookeeper数据源");
         return zkClient;
+    }
+
+    public void writeTopicInfo(TopicMetadata metadata) {
+        this.currentZkClient().writeTopicMetadata(metadata);
     }
 }

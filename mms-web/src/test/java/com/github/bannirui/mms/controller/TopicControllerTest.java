@@ -29,7 +29,7 @@ public class TopicControllerTest {
             setName("TEST_TOPIC");
             setEnvironments(new ArrayList<>() {{
                 add(new TopicEnvironmentInfoVo() {{
-                    setEnvironmentId(1);
+                    setEnvId(1L);
                     setServerId(2L);
                 }});
             }});

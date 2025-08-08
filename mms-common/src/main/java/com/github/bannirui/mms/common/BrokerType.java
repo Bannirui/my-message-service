@@ -1,39 +1,36 @@
 package com.github.bannirui.mms.common;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.commons.lang3.StringUtils;
+import lombok.Getter;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+@Getter
 public enum BrokerType {
-    KAFKA("kafka"),
-    ROCKETMQ("rocketmq");
+    KAFKA(1, "kafka"),
+    ROCKETMQ(1 << 1, "rocketmq");
 
-    public String name;
+    private final Integer code;
+    public final String desc;
 
-    BrokerType(String name) {
-        this.name = name;
+    BrokerType(Integer code, String desc) {
+        this.code = code;
+        this.desc = desc;
     }
 
-    public String getName() {
-        return this.name;
-    }
+    private static final Map<Integer, BrokerType> by_code = new HashMap<>();
 
-    public static List<String> getValues() {
-        List<String> list = new ArrayList<>();
-        for (BrokerType value : BrokerType.values()) {
-            list.add(value.getName());
+    static {
+        for (BrokerType e : BrokerType.values()) {
+            by_code.put(e.code, e);
         }
-        return list;
     }
 
-    public static BrokerType parseFrom(String property) {
-        if (StringUtils.isEmpty(property)) {
+    public static BrokerType getByCode(Integer code) {
+        if (Objects.isNull(code)) {
             return null;
-        } else if (KAFKA.getName().equalsIgnoreCase(property)) {
-            return KAFKA;
-        } else if (ROCKETMQ.getName().equalsIgnoreCase(property)) {
-            return ROCKETMQ;
         }
-        return null;
+        return by_code.get(code);
     }
 }

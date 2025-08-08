@@ -5,7 +5,6 @@ import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.service.manager.kafka.KafkaMiddlewareManager;
 import com.github.bannirui.mms.service.manager.rocket.RocketMqMiddlewareManager;
 import com.github.bannirui.mms.service.router.ZkRouter;
-import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -38,14 +38,14 @@ public class MessageAdminManagerAdapt {
     }
 
     private String generateKey(String clusterName) {
-        Integer envId = MmsContextManager.getEnv();
-        return null == envId ? "&" + clusterName : envId + "&" + clusterName;
+        Long envId = MmsContextManager.getEnv();
+        return Objects.isNull(envId) ? "&" + clusterName : envId + "&" + clusterName;
     }
 
     private AbstractMessageMiddlewareProcessor createAdmin(String clusterName) {
         MmsZkClient zkClient = this.zkRouter.currentZkClient();
         ClusterMetadata clusterMetadata = zkClient.readClusterMetadata(clusterName);
-        Integer env = MmsContextManager.getEnv();
+        Long env = MmsContextManager.getEnv();
         AbstractMessageMiddlewareProcessor middlewareProcess;
         AbstractMessageMiddlewareProcessor.RollBack rollBack = () -> {
             MmsContextManager.setEnv(env);

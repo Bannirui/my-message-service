@@ -43,7 +43,18 @@ public class KafkaMiddlewareManager extends AbstractMessageMiddlewareProcessor {
     }
 
     @Override
-    public void createTopic(String topic, int partitions, Integer replication) {
+    public void createTopic(String topicName, int partitions, Integer replication) {
+        // todo
+    }
+
+    @Override
+    public boolean existTopic(String topicName) {
+        // todo
+        return false;
+    }
+
+    @Override
+    public void updateTopic(String topicName, int partitions) {
         // todo
     }
 }
