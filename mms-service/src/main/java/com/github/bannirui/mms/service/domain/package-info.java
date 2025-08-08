@@ -1,0 +1,1 @@
+package com.github.bannirui.mms.service.domain;

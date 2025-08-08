@@ -2,6 +2,7 @@ package com.github.bannirui.mms.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.bannirui.mms.dto.topic.TopicDTO;
+import com.github.bannirui.mms.service.domain.topic.TopicEnvironmentInfoVo;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
+import java.util.ArrayList;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,8 +25,15 @@ public class TopicControllerTest {
 
     @Test
     public void testCreateTopic() throws Exception {
-        TopicDTO req = new TopicDTO();
-        req.setName("Test_Topic");
+        TopicDTO req = new TopicDTO() {{
+            setName("TEST_TOPIC");
+            setEnvironments(new ArrayList<>() {{
+                add(new TopicEnvironmentInfoVo() {{
+                    setEnvironmentId(1);
+                    setServerId(2L);
+                }});
+            }});
+        }};
         ObjectMapper objectMapper = new ObjectMapper();
         String reqJson = objectMapper.writeValueAsString(req);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/topic/add")

@@ -28,6 +28,7 @@
         <module>mms-common</module>
         <module>mms-web</module>
         <module>mms-dal</module>
+        <module>mms-service</module>
     </modules>
 
     <properties>
@@ -54,6 +55,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>mms-client</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>mms-service</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -121,6 +127,17 @@
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>
                 <version>8.0.33</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq</artifactId>
+                <version>3.20.5</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>transmittable-thread-local</artifactId>
+                <version>2.14.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,0 +1,70 @@
+package com.github.bannirui.mms.service.manager;
+
+import com.github.bannirui.mms.common.MmsException;
+import com.github.bannirui.mms.metadata.ClusterMetadata;
+import com.github.bannirui.mms.service.manager.kafka.KafkaMiddlewareManager;
+import com.github.bannirui.mms.service.manager.rocket.RocketMqMiddlewareManager;
+import com.github.bannirui.mms.service.router.ZkRouter;
+import com.github.bannirui.mms.util.Assert;
+import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+public class MessageAdminManagerAdapt {
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageAdminManagerAdapt.class);
+
+    private final Map<String, AbstractMessageMiddlewareProcessor> implMap = new ConcurrentHashMap<>();
+
+    @Autowired
+    ZkRouter zkRouter;
+
+    public MiddlewareProcess getOrCreateAdmin(String clusterName) {
+        String genKey = this.generateKey(clusterName);
+        if (!this.implMap.containsKey(genKey)) {
+            synchronized (this.implMap) {
+                if (!this.implMap.containsKey(genKey)) {
+                    this.implMap.put(genKey, this.createAdmin(clusterName));
+                }
+            }
+        }
+        return this.implMap.get(genKey);
+    }
+
+    private String generateKey(String clusterName) {
+        Integer envId = MmsContextManager.getEnv();
+        return null == envId ? "&" + clusterName : envId + "&" + clusterName;
+    }
+
+    private AbstractMessageMiddlewareProcessor createAdmin(String clusterName) {
+        MmsZkClient zkClient = this.zkRouter.currentZkClient();
+        ClusterMetadata clusterMetadata = zkClient.readClusterMetadata(clusterName);
+        Integer env = MmsContextManager.getEnv();
+        AbstractMessageMiddlewareProcessor middlewareProcess;
+        AbstractMessageMiddlewareProcessor.RollBack rollBack = () -> {
+            MmsContextManager.setEnv(env);
+            rm(clusterName);
+        };
+        switch (clusterMetadata.getBrokerType()) {
+            case KAFKA -> middlewareProcess = new KafkaMiddlewareManager(zkClient, clusterMetadata, rollBack);
+            case ROCKETMQ -> middlewareProcess = new RocketMqMiddlewareManager(zkClient, clusterMetadata, rollBack);
+            default -> throw new MmsException("Illegal cluster type");
+        }
+        return middlewareProcess;
+    }
+
+    public void rm(String clusterName) {
+        String genKey = this.generateKey(clusterName);
+        synchronized (this.implMap) {
+            if (this.implMap.containsKey(genKey)) {
+                this.implMap.remove(genKey).destroy();
+            }
+        }
+    }
+}
