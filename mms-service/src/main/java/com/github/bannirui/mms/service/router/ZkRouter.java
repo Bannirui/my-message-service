@@ -16,7 +16,7 @@ public class ZkRouter {
 
     private static final Logger logger = LoggerFactory.getLogger(ZkRouter.class);
 
-    @Autowired(required = false)
+    @Autowired
     private ZkSelector zkSelector;
 
     public MmsZkClient currentZkClient() {

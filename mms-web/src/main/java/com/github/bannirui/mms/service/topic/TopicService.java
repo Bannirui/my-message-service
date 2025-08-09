@@ -41,8 +41,6 @@ public class TopicService {
     private ServerMapper serverMapper;
     @Autowired
     private TopicEnvServerMapper topicEnvServerMapper;
-    @Autowired
-    private MybatisAutoConfiguration.AutoConfiguredMapperScannerRegistrar autoConfiguredMapperScannerRegistrar;
 
     @Autowired
     private MessageAdminManagerAdapt messageAdminManagerAdapt;
@@ -51,6 +49,7 @@ public class TopicService {
 
     /**
      * 申请topic
+     * @return 新增的topic数量
      */
     @Transactional(rollbackFor = Exception.class)
     public int addTopic(ApplyTopicReq req, String operator) {

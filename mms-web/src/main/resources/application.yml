@@ -11,5 +11,5 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
-  mapper-locations: classpath*:**/mapper/**/*.xml
+  mapper-locations: classpath*:com/github/bannirui/mms/dal/mapper/**/*.xml
   type-aliases-package: com.github.bannirui.mms.dal.model
