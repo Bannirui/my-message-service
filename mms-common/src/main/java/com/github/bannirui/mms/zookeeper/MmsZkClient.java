@@ -8,20 +8,17 @@ import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.github.bannirui.mms.metadata.TopicMetadata;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Properties;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.Stat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 原生zk客户端
@@ -44,7 +41,7 @@ public class MmsZkClient extends ZooKeeper {
                 throw MmsException.NO_ZK_EXCEPTION;
             }
             try {
-                instance=new MmsZkClient(mmsServer, 20_000, watchedEvent -> {
+                instance = new MmsZkClient(mmsServer, 20_000, watchedEvent -> {
                     Watcher.Event.KeeperState state = watchedEvent.getState();
                     Watcher.Event.EventType type = watchedEvent.getType();
                     if (Watcher.Event.KeeperState.SyncConnected == state) {
@@ -87,21 +84,16 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 写cluster
+     *
      * @param clusterName cluster的子节点 路径/mms/cluster/${clusterName}
-     * @param zkMeta 要写入znode的数据
+     * @param zkMeta      要写入znode的数据
      */
     public void writeClusterMetadata(String clusterName, String zkMeta) {
         // 节点路径
         String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, clusterName);
         try {
-            Stat exists = super.exists(path, false);
-            if (Objects.isNull(exists)) {
-                // 新增
-                super.create(path, zkMeta.getBytes(StandardCharsets.UTF_8), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } else {
-                // 更新 不指定版本
-                super.setData(path, zkMeta.getBytes(StandardCharsets.UTF_8), -1);
-            }
+            // 确保父节点存在
+            this.write2Zk(path, zkMeta, CreateMode.PERSISTENT);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -109,20 +101,14 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 写topic
-     * @param topicName topic节点名称 路径/mms/topic/${topicName}
+     *
+     * @param topicName   topic节点名称 路径/mms/topic/${topicName}
      * @param topicZkData topic数据
      */
     public void writeTopicMetadata(String topicName, String topicZkData) {
         try {
             String path = MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, topicName);
-            Stat exists=super.exists(path, false);
-            if (Objects.isNull(exists)) {
-                // insert
-                super.create(path, topicZkData.getBytes(StandardCharsets.UTF_8), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } else {
-                // update 不指定版本
-                super.setData(path, topicZkData.getBytes(StandardCharsets.UTF_8), -1);
-            }
+            this.write2Zk(path, topicZkData, CreateMode.PERSISTENT);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -130,7 +116,8 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 写consumer group
-     * @param cgName ConsumerGroup节点名称 路径/mms/consumergroup/${ConsumerGroupName}
+     *
+     * @param cgName   ConsumerGroup节点名称 路径/mms/consumergroup/${ConsumerGroupName}
      * @param cgZkData consumer group数据
      */
     public void writeConsumerGroupMetadata(String cgName, String cgZkData) {
@@ -151,6 +138,7 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 删除cluster数据
+     *
      * @param clusterName cluster子节点名称 /mms/cluster/${ClusterName}
      */
     public void deleteCluster(String clusterName) {
@@ -164,6 +152,7 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 删除topic数据
+     *
      * @param topicName topic子节点名称 路径/mms/topic/${TopicName}
      */
     public void deleteTopic(String topicName) {
@@ -177,6 +166,7 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 删除ConsumerGroup数据
+     *
      * @param consumerGroupName ConsumerGroup子节点名称 /mms/consumergroup/${ConsumerGroup}
      */
     public void deleteConsumerGroup(String consumerGroupName) {
@@ -190,14 +180,19 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 读取cluster数据
+     *
      * @param clusterName cluster子节点名称 /mms/cluster/${ClusterName}
      * @return cluster数据
      */
     public ClusterMetadata readClusterMetadata(String clusterName) {
         try {
             String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, clusterName);
+            if (Objects.isNull(super.exists(path, false))) {
+                logger.error("cluster {} metadata is empty", clusterName);
+                throw MmsException.CLUSTER_INFO_EXCEPTION;
+            }
             byte[] data = super.getData(path, false, null);
-            if(Objects.isNull(data)) {
+            if (Objects.isNull(data)) {
                 logger.error("cluster {} metadata is empty", clusterName);
                 throw MmsException.CLUSTER_INFO_EXCEPTION;
             }
@@ -223,6 +218,7 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 准备写入topic或者consumer group信息 前置校验是否已经存在节点
+     *
      * @param type 标识topic或consumer group
      * @param name 子节点名称 再拼接topic或者consumer group的路径前缀
      * @return <t>TRUE</t>标识节点已经存在 <t>FALSE</t>标识节点不存在
@@ -241,6 +237,7 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * 读取topic或者consumer group数据
+     *
      * @param type {@link MmsType}标识topic还是consumer group
      * @param name 子节点名称 拼接上topic或者consumer group父节点就是完整路径
      * @return topic或者consumer group数据
@@ -258,7 +255,7 @@ public class MmsZkClient extends ZooKeeper {
                 throw MmsException.NO_ZK_EXCEPTION;
             }
             byte[] data = super.getData(zkPath, false, null);
-            if(Objects.isNull(data)) {
+            if (Objects.isNull(data)) {
                 logger.error("zk data is null for path: {}", zkPath);
                 throw MmsException.NO_ZK_EXCEPTION;
             }
@@ -281,14 +278,14 @@ public class MmsZkClient extends ZooKeeper {
                 metadata.setIsEncrypt(StringUtils.isNotBlank(isEncrypt) && Boolean.parseBoolean(isEncrypt));
             } else {
                 // consumer group
-                ((ConsumerGroupMetadata)metadata).setBindingTopic(properties.getProperty("bindingTopic"));
-                ((ConsumerGroupMetadata)metadata).setBroadcast(properties.getProperty("broadcast"));
-                ((ConsumerGroupMetadata)metadata).setConsumeFrom(properties.getProperty("consumeFrom"));
-                ((ConsumerGroupMetadata)metadata).setSuspend(properties.getProperty("suspend"));
+                ((ConsumerGroupMetadata) metadata).setBindingTopic(properties.getProperty("bindingTopic"));
+                ((ConsumerGroupMetadata) metadata).setBroadcast(properties.getProperty("broadcast"));
+                ((ConsumerGroupMetadata) metadata).setConsumeFrom(properties.getProperty("consumeFrom"));
+                ((ConsumerGroupMetadata) metadata).setSuspend(properties.getProperty("suspend"));
                 if (StringUtils.isBlank(properties.getProperty("releaseStatus"))) {
-                    ((ConsumerGroupMetadata)metadata).setReleaseStatus(null);
+                    ((ConsumerGroupMetadata) metadata).setReleaseStatus(null);
                 } else {
-                    ((ConsumerGroupMetadata)metadata).setReleaseStatus(properties.getProperty("releaseStatus"));
+                    ((ConsumerGroupMetadata) metadata).setReleaseStatus(properties.getProperty("releaseStatus"));
                 }
             }
             return metadata;
@@ -300,15 +297,17 @@ public class MmsZkClient extends ZooKeeper {
 
     /**
      * zk中保存的topic元数据
+     *
      * @param name topic的子节点名称 路径是/mms/topic/${name}
      * @return topic数据
      */
     public TopicMetadata readTopicMetadata(String name) {
-        return (TopicMetadata)this.readZkInfo(MmsType.TOPIC, name);
+        return (TopicMetadata) this.readZkInfo(MmsType.TOPIC, name);
     }
 
     /**
      * zk中保存的ConsumerGroup元数据
+     *
      * @param name 子节点名称 路径是/mms/consumergroup/${name}
      * @return consumer group数据
      */
@@ -322,6 +321,7 @@ public class MmsZkClient extends ZooKeeper {
      *     <li>用换行符分割 便于将来用{@link Properties}读取</li>
      *     <li>序列化成byte存到zk节点</li>
      * </ul>
+     *
      * @param topicMetadata topic数据
      * @return 字符串形式
      */
@@ -339,7 +339,6 @@ public class MmsZkClient extends ZooKeeper {
             sb.append("gatedCluster=");
         }
         sb.append(System.lineSeparator());
-        sb.append("isEncrypt=").append(topicMetadata.getIsEncrypt().toString());
         return sb.toString();
     }
 
@@ -407,5 +406,31 @@ public class MmsZkClient extends ZooKeeper {
     public void writeConsumerGroupMetadata(ConsumerGroupMetadata cgMetadata) {
         String cgZkData = this.buildConsumerGroupData(cgMetadata);
         this.writeConsumerGroupMetadata(cgMetadata.getName(), cgZkData);
+    }
+
+    /**
+     * 向zk节点写数据
+     *
+     * @param node       要写的节点路径 确保父节点必须存在 因此递归查看一下
+     * @param data       要写的数据
+     * @param createMode 临时节点还是持久节点
+     */
+    private void write2Zk(String node, String data, CreateMode createMode) throws InterruptedException, KeeperException {
+        String[] parts = node.split("/");
+        StringBuilder path = new StringBuilder();
+        for (int i = 1, sz = parts.length; i < sz; i++) {
+            // 跳过第一个空字符串
+            path.append("/").append(parts[i]);
+            String curPathStr = path.toString();
+            if (Objects.isNull(super.exists(curPathStr, false))) {
+                // 最后一层用传入的data 其余层用null
+                byte[] nodeData = (i == sz - 1) ? data.getBytes(StandardCharsets.UTF_8) : null;
+                CreateMode mode = (i == sz - 1) ? createMode : CreateMode.PERSISTENT;
+                super.create(curPathStr, nodeData, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode);
+            } else if (i == sz - 1) {
+                // 节点已存在 更新数据
+                super.setData(curPathStr, data.getBytes(StandardCharsets.UTF_8), -1);
+            }
+        }
     }
 }

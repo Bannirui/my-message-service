@@ -20,7 +20,6 @@ import com.github.bannirui.mms.service.manager.MiddlewareProcess;
 import com.github.bannirui.mms.service.manager.MmsContextManager;
 import com.github.bannirui.mms.util.Assert;
 import org.apache.commons.collections.MapUtils;
-import org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +48,7 @@ public class TopicService {
 
     /**
      * 申请topic
+     *
      * @return 新增的topic数量
      */
     @Transactional(rollbackFor = Exception.class)
@@ -59,15 +59,15 @@ public class TopicService {
         Topic topic = new Topic();
         topic.setUserId(req.getUserId());
         topic.setName(req.getName());
+        topic.setClusterType(req.getClusterType());
         topic.setAppId(req.getAppId());
         topic.setTps(req.getTps());
         topic.setMsgSz(req.getMsgSz());
         // 申请
-        topic.setStatus(ResourceStatus.CREATE_NEW.getStatus());
+        topic.setStatus(ResourceStatus.CREATE_NEW.getCode());
         int count = topicMapper.insert(topic);
-        req.getEnvs().forEach(env -> {
-            this.installTopicEnvRef(operator, topic, null, env.getEnvId());
-        });
+        // 集群是由管理员审批时候分配的
+        req.getEnvs().forEach(env -> this.installTopicEnvRef(operator, topic, null, env.getEnvId()));
         return count;
     }
 
@@ -88,13 +88,13 @@ public class TopicService {
     /**
      * 审批topic
      *
-     * @param req      要审核的topic
+     * @param topicId  要审核的topic
      * @param userName 谁审核的
      * @return 初始化失败的环境
      */
-    public List<Long> approveTopic(ApproveTopicReq req, String userName) {
+    public List<Long> approveTopic(Long topicId, ApproveTopicReq req, String userName) {
         // 要审批的topic
-        Topic topic = topicMapper.selectById(req.getTopicId());
+        Topic topic = this.topicMapper.selectById(topicId);
         // 准备分配的集群 集群是依附环境选择出来的
         List<ApproveTopicReq.TopicEnvServerInfo> candidateServers = req.getEnvServers();
         List<Long> candidateServerIds = candidateServers.stream().map(ApproveTopicReq.TopicEnvServerInfo::getServerId).toList();
@@ -105,12 +105,12 @@ public class TopicService {
         Assert.that(Objects.equals(clusterTypeCnt, 1L), "topic在不同环境也得选择同一种集群类型");
         // 每个环境分配的集群
         Map<Long, Server> admitServerGroupById = admitServers.stream().collect(Collectors.toMap(Server::getId, x -> x));
-        // 申请的环境 key=envId 可能当前环境下已经分配好了一个集群 现在需要更新换成其他集群
-        Map<Long, TopicEnvServerRef> serverGroupByEnv = this.topicEnvServerMapper.getByTopicId(topic.getId())
+        // 当前topic的配置信息 key=envId 可能当前环境下已经分配好了一个集群 现在需要更新换成其他集群
+        Map<Long, TopicEnvServerRef> curTopicInfoGroup8Env = this.topicEnvServerMapper.getByTopicId(topic.getId())
                 .stream()
                 .collect(Collectors.toMap(TopicEnvServerRef::getEnvId, x -> x));
         this.topicMapper.updateById(new Topic() {{
-            setId(req.getTopicId());
+            setId(topicId);
             setPartitions(req.getPartitions());
             setReplication(req.getReplication());
         }});
@@ -123,7 +123,10 @@ public class TopicService {
             Long serverId = env.getServerId();
             Server server = admitServerGroupById.get(serverId);
             // 这个环境下可能已经存在了一个集群 可能是为环境新增的集群 可能是为环境换别的集群
-            Long curServerId = serverGroupByEnv.get(envId).getServerId();
+            Long curServerId = null;
+            if (curTopicInfoGroup8Env.containsKey(serverId)) {
+                curServerId = curTopicInfoGroup8Env.get(envId).getServerId();
+            }
             try {
                 if (!initTopicResource(envId, topic, server, curServerId, req.getPartitions())) {
                     continue;
@@ -131,7 +134,7 @@ public class TopicService {
                 // 更新当前环境下挂着的集群
                 this.topicEnvServerMapper.updateById(
                         new TopicEnvServer() {{
-                            setId(serverGroupByEnv.get(envId).getTesId());
+                            setId(curTopicInfoGroup8Env.get(envId).getTesId());
                             setServerId(serverId);
                         }});
             } catch (Exception e) {
@@ -144,8 +147,8 @@ public class TopicService {
         // topic的状态推进
         this.topicMapper.updateById(
                 new Topic() {{
-                    setId(req.getTopicId());
-                    setStatus(ResourceStatus.CREATE_APPROVED.getStatus());
+                    setId(topicId);
+                    setStatus(ResourceStatus.CREATE_APPROVED.getCode());
                 }}
         );
         return initFailEnv;
@@ -171,7 +174,7 @@ public class TopicService {
         String topicName = topic.getName();
         MmsTopicConfigInfo topicConfigInfo = this.buildTopicConfigInfo(topic, server);
         // 给主题首次分配集群or给主题换集群
-        if (Objects.equals(ResourceStatus.CREATE_NEW.getStatus(), topic.getStatus())
+        if (Objects.equals(ResourceStatus.CREATE_NEW.getCode(), topic.getStatus())
                 || !Objects.equals(server.getId(), curServerId)) {
             this.createTopic(topicConfigInfo);
             this.zkRegister.registerTopic2Zk(clusterName, topicName, BrokerType.getByCode(server.getType()));
@@ -210,7 +213,6 @@ public class TopicService {
         ret.setPartitions(partitions);
         Map<String, Integer> replication = new HashMap<>();
         replication.put(topic.getName(), topic.getReplication());
-        ret.setPartitions(replication);
         ret.setReplications(replication);
         return ret;
     }

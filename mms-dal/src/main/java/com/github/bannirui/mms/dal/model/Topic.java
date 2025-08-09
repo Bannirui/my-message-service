@@ -20,6 +20,10 @@ public class Topic {
      */
     private String name;
     /**
+     * 集群类型
+     */
+    private Integer clusterType;
+    /**
      * 给哪个应用服务的
      */
     private Long appId;

@@ -11,9 +11,9 @@
            server.name as server_name,
            server.type as server_type
     from topic_env_server as tes
-           LEFT JOIN topic on topic.id = ref.topic_id
-           LEFT JOIN env on ref.env_id = env.id
-           LEFT JOIN server on ref.service_id = server.id
-    where ref.topic_id = #{topicId}
+           LEFT JOIN topic on tes.topic_id = topic.id
+           LEFT JOIN env on tes.env_id = env.id
+           LEFT JOIN server on tes.server_id = server.id
+    where tes.topic_id = #{topicId}
   </select>
 </mapper>

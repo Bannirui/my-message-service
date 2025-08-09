@@ -38,9 +38,10 @@ public class MmsConst {
     public static class ZK {
         public static final String MMS_STARTUP_PARAM = "mms_zk";
         public static final String ENV = "env";
-        public static final String CLUSTER_ZKPATH = "/mms/cluster";
-        public static final String TOPIC_ZKPATH = "/mms/topic";
-        public static final String CONSUMERGROUP_ZKPATH = "/mms/consumergroup";
+        public static final String ROOT_ZKPATH = "/mms";
+        public static final String CLUSTER_ZKPATH = ROOT_ZKPATH + "/cluster";
+        public static final String TOPIC_ZKPATH = ROOT_ZKPATH + "/topic";
+        public static final String CONSUMERGROUP_ZKPATH = ROOT_ZKPATH + "/consumergroup";
         public static final String ZK_FIELD_CLUSTERNAME = "clusterName";
         public static final String ZK_FIELD_BOOTADDDR = "bootAddr";
         public static final String ZK_FIELD_BROKERTYPE = "brokerType";

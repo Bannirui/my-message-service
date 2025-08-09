@@ -5,12 +5,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ApproveTopicReq extends ApplyTopicReq {
+public class ApproveTopicReq {
 
-    /**
-     * {@link com.github.bannirui.mms.dal.model.Topic#id}
-     */
-    private Long topicId;
     /**
      * 审核员给topic分配的分区数
      */
@@ -26,7 +22,11 @@ public class ApproveTopicReq extends ApplyTopicReq {
     List<TopicEnvServerInfo> envServers;
 
     @Data
-    public static class TopicEnvServerInfo extends TopicEnvInfo {
+    public static class TopicEnvServerInfo {
+        /**
+         * @see com.github.bannirui.mms.dal.model.Env#id
+         */
+        protected Long envId;
         /**
          * 集群id
          * {@link com.github.bannirui.mms.dal.model.Server#id}

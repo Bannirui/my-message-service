@@ -10,37 +10,41 @@ public class ApplyTopicReq {
     /**
      * 申请人
      */
-    protected Long userId;
+    private Long userId;
     /**
      * @see com.github.bannirui.mms.dal.model.Topic#name
      */
-    protected String name;
+    private String name;
     /**
      * 给哪个应用服务的
      */
-    protected Long appId;
+    private Long appId;
     /**
      * 发送速度
      * 条/秒
      */
-    protected Integer tps;
+    private Integer tps;
     /**
      * 消息体大小
      * 字节
      */
-    protected Integer msgSz;
-
+    private Integer msgSz;
+    /**
+     * 集群类型
+     * {@link com.github.bannirui.mms.common.BrokerType}
+     */
+    private Integer clusterType;
     /**
      * 需要申请哪些环境的topic
      */
-    protected List<TopicEnvInfo> envs;
+    private List<TopicEnvInfo> envs;
 
     @Data
     public static class TopicEnvInfo {
         /**
          * @see com.github.bannirui.mms.dal.model.Env#id
          */
-        protected Long envId;
+        private Long envId;
     }
 }
 

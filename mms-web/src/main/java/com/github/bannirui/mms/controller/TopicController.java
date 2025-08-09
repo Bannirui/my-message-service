@@ -30,6 +30,9 @@ public class TopicController {
         if (StringUtils.isEmpty(req.getName())) {
             return Result.error("401", "topic name required");
         }
+        if (Objects.isNull(req.getClusterType())) {
+            return Result.error("401", "集群类型必填");
+        }
         if (Objects.isNull(req.getAppId())) {
             return Result.error("401", "申请给哪个服务必填");
         }
@@ -52,7 +55,15 @@ public class TopicController {
      */
     @PutMapping(value = "/{topicId}/approve")
     public Result<List<Long>> approveTopic(@RequestBody ApproveTopicReq req, @PathVariable Long topicId) {
-        req.setTopicId(topicId);
-        return Result.success(topicService.approveTopic(req, ""));
+        if (Objects.isNull(topicId)) {
+            return Result.error("401", "topic id必填");
+        }
+        if (Objects.isNull(req.getPartitions()) || req.getPartitions() <= 0) {
+            return Result.error("401", "partitions非法");
+        }
+        if (Objects.isNull(req.getReplication()) || req.getReplication() <= 0) {
+            return Result.error("401", "replication非法");
+        }
+        return Result.success(topicService.approveTopic(topicId, req, ""));
     }
 }

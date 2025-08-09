@@ -1,24 +1,16 @@
-CREATE TABLE `topic`
-(
-    `id`          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    `user_id`     BIGINT       not null default -1 COMMENT '申请人',
-    `name`        VARCHAR(128) NOT NULL COMMENT '主题名称',
-    `app_id`      BIGINT       not null default -1 COMMENT 'topic给哪个应用服务用的',
-    `tps`         INT          NOT NULL DEFAULT 0 COMMENT '发送速度 条/秒',
-    `msg_sz`      INT          NOT NULL DEFAULT 0 COMMENT '消息体大小 字节',
-    `status`      INT          NOT NULL DEFAULT -1 COMMENT '状态',
-    `partitions`  INT          NOT NULL DEFAULT 1 COMMENT '分区数',
-    `replication` INT          NOT NULL DEFAULT 1 COMMENT '副本数'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主题表';
-
 CREATE TABLE `server`
 (
     `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `name`    varchar(128) comment '集群名',
     `address` varchar(256) comment 'ip:port or url',
-    `type`    INT NOT NULL DEFAULT -1 COMMENT 'mq类型 kafka rocket',
+    `type`    INT NOT NULL DEFAULT -1 COMMENT 'mq类型 1=kafka 2=rocket',
     `status`  int not null default -1 comment '集群服务器状态'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='集群';
+
+INSERT INTO `server` (`name`, `address`, `type`, `status`)
+VALUES ('Kafka集群A', '192.168.1.100:9092', 1, 1),
+       ('Kafka集群B', '192.168.1.101:9092', 1, 1),
+       ('RocketMQ集群A', '192.168.1.200:9876', 2, 1);
 
 CREATE TABLE `env`
 (
@@ -26,6 +18,25 @@ CREATE TABLE `env`
     `name`   varchar(256) comment '环境',
     `status` int not null default -1 comment '状态'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='环境';
+INSERT INTO `env` (`name`, `status`)
+
+VALUES ('开发环境', 1),
+       ('测试环境', 1),
+       ('生产环境', 1);
+
+CREATE TABLE `topic`
+(
+    `id`           BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `user_id`      BIGINT       not null default -1 COMMENT '申请人',
+    `name`         VARCHAR(128) NOT NULL COMMENT '主题名称',
+    `cluster_type` INT          NOT NULL DEFAULT -1 COMMENT 'mq类型 1=kafka 2=rocket',
+    `app_id`       BIGINT       not null default -1 COMMENT 'topic给哪个应用服务用的',
+    `tps`          INT          NOT NULL DEFAULT 0 COMMENT '发送速度 条/秒',
+    `msg_sz`       INT          NOT NULL DEFAULT 0 COMMENT '消息体大小 字节',
+    `status`       INT          NOT NULL DEFAULT -1 COMMENT '状态',
+    `partitions`   INT          NOT NULL DEFAULT 0 COMMENT '分区数',
+    `replication`  INT          NOT NULL DEFAULT 0 COMMENT '副本数'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主题表';
 
 CREATE TABLE `topic_env_server`
 (
