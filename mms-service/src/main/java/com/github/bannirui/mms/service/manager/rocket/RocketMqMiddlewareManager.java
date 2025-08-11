@@ -79,12 +79,12 @@ public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcesso
                 logger.info("topic {} created to {}", topicConfig.getTopicName(), clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr());
             }
             TopicRouteData topicRouteData;
-            Thread.sleep(1_000);
+            Thread.sleep(1_000L);
             try {
                 topicRouteData = this.defaultMQAdminExt.examineTopicRouteInfo(topicName);
             } catch (Throwable ex) {
                 logger.warn("examine topic failed", ex);
-                Thread.sleep(3_000);
+                Thread.sleep(3_000L);
                 topicRouteData = this.defaultMQAdminExt.examineTopicRouteInfo(topicName);
             }
             List<String> createdBrokers = topicRouteData.getBrokerDatas().stream().map(t -> {

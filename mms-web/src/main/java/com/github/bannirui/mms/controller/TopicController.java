@@ -1,7 +1,11 @@
 package com.github.bannirui.mms.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.github.bannirui.mms.dal.model.TopicEnvServerRef;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
+import com.github.bannirui.mms.req.TopicPageReq;
+import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.topic.TopicService;
 import org.apache.commons.collections.CollectionUtils;
@@ -25,25 +29,25 @@ public class TopicController {
     @PostMapping(value = "/add")
     public Result<Integer> addTopic(@RequestBody ApplyTopicReq req) {
         if (Objects.isNull(req.getUserId())) {
-            return Result.error("401", "申请人必填");
+            return Result.error(401, "申请人必填");
         }
         if (StringUtils.isEmpty(req.getName())) {
-            return Result.error("401", "topic name required");
+            return Result.error(401, "topic name required");
         }
         if (Objects.isNull(req.getClusterType())) {
-            return Result.error("401", "集群类型必填");
+            return Result.error(401, "集群类型必填");
         }
         if (Objects.isNull(req.getAppId())) {
-            return Result.error("401", "申请给哪个服务必填");
+            return Result.error(401, "申请给哪个服务必填");
         }
         if (Objects.isNull(req.getTps())) {
-            return Result.error("401", "tps必填");
+            return Result.error(401, "tps必填");
         }
         if (Objects.isNull(req.getMsgSz())) {
-            return Result.error("401", "消息体大小必填");
+            return Result.error(401, "消息体大小必填");
         }
         if (CollectionUtils.isEmpty(req.getEnvs())) {
-            return Result.error("401", "环境必填");
+            return Result.error(401, "环境必填");
         }
         return Result.success(this.topicService.addTopic(req, "TODO"));
     }
@@ -56,14 +60,20 @@ public class TopicController {
     @PutMapping(value = "/{topicId}/approve")
     public Result<List<Long>> approveTopic(@RequestBody ApproveTopicReq req, @PathVariable Long topicId) {
         if (Objects.isNull(topicId)) {
-            return Result.error("401", "topic id必填");
+            return Result.error(401, "topic id必填");
         }
         if (Objects.isNull(req.getPartitions()) || req.getPartitions() <= 0) {
-            return Result.error("401", "partitions非法");
+            return Result.error(401, "partitions非法");
         }
         if (Objects.isNull(req.getReplication()) || req.getReplication() <= 0) {
-            return Result.error("401", "replication非法");
+            return Result.error(401, "replication非法");
         }
         return Result.success(topicService.approveTopic(topicId, req, ""));
+    }
+
+    @GetMapping(value = "/querypage")
+    public PageResult<TopicEnvServerRef> queryTopicsPage(TopicPageReq req) {
+        IPage<TopicEnvServerRef> ret = topicService.queryTopicsPage(req);
+        return PageResult.success(ret.getTotal(), ret.getRecords());
     }
 }
