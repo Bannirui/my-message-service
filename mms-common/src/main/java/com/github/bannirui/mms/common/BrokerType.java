@@ -9,7 +9,8 @@ import java.util.Objects;
 @Getter
 public enum BrokerType {
     KAFKA(1, "kafka"),
-    ROCKETMQ(1 << 1, "rocketmq");
+    ROCKETMQ(1 << 1, "rocketmq"),
+    ;
 
     private final Integer code;
     public final String desc;

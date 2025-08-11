@@ -53,26 +53,4 @@ public class MmsMetadata {
     public boolean isGatedLaunch() {
         return StringUtils.isNotBlank(this.gatedIps) && this.gatedIps.contains(MmsConst.MMS_IP);
     }
-
-    @Override
-    public String toString() {
-        return "MmsMetadata{type='" + this.type + '\'' + ", name='" + this.name + '\'' + ", clusterMetadata=" + this.clusterMetadata.toString() + ", domain='" + this.domain + '\'' + ", gatedCluster='" + (this.gatedCluster != null ? this.gatedCluster.toString() : "") + '\'' + ", gatedIps='" + this.gatedIps + '\'' + '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        } else if (o != null && this.getClass() == o.getClass()) {
-            MmsMetadata that = (MmsMetadata) o;
-            return Objects.equals(this.type, that.type) && Objects.equals(this.name, that.name) && Objects.equals(this.clusterMetadata, that.clusterMetadata) && Objects.equals(this.domain, that.domain) && Objects.equals(this.gatedIps, that.gatedIps) && Objects.equals(this.gatedCluster, that.gatedCluster) && Objects.equals(this.isEncrypt, that.isEncrypt);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(new Object[]{this.type, this.name, this.clusterMetadata, this.domain, this.gatedIps, this.gatedCluster, this.isEncrypt});
-    }
 }

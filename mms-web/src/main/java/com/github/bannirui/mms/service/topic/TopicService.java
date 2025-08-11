@@ -2,8 +2,8 @@ package com.github.bannirui.mms.service.topic;
 
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.github.bannirui.mms.common.BrokerType;
-import com.github.bannirui.mms.common.MmsServerStatusEnum;
 import com.github.bannirui.mms.common.ResourceStatus;
+import com.github.bannirui.mms.common.ServerStatus;
 import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper;
@@ -95,6 +95,7 @@ public class TopicService {
     public List<Long> approveTopic(Long topicId, ApproveTopicReq req, String userName) {
         // 要审批的topic
         Topic topic = this.topicMapper.selectById(topicId);
+        Assert.that(Objects.nonNull(topic), "要审批的topic不存在");
         // 准备分配的集群 集群是依附环境选择出来的
         List<ApproveTopicReq.TopicEnvServerInfo> candidateServers = req.getEnvServers();
         List<Long> candidateServerIds = candidateServers.stream().map(ApproveTopicReq.TopicEnvServerInfo::getServerId).toList();
@@ -177,7 +178,7 @@ public class TopicService {
         if (Objects.equals(ResourceStatus.CREATE_NEW.getCode(), topic.getStatus())
                 || !Objects.equals(server.getId(), curServerId)) {
             this.createTopic(topicConfigInfo);
-            this.zkRegister.registerTopic2Zk(clusterName, topicName, BrokerType.getByCode(server.getType()));
+            this.zkRegister.registerTopic2Zk(clusterName, topicName, server.getType());
         } else if (!Objects.equals(topic.getPartitions(), newPartitions)) {
             // 仅仅更新分区数 不需要注册到远程配置中心
             this.updateTopic(topicConfigInfo);
@@ -196,7 +197,7 @@ public class TopicService {
         // 审核集群的信息
         List<Server> servers = this.serverMapper.selectBatchIds(candidateServerIds)
                 .stream()
-                .filter(x -> Objects.equals(MmsServerStatusEnum.ENABLE.getCode(), x.getStatus()))
+                .filter(x -> Objects.equals(ServerStatus.ENABLE.getCode(), x.getStatus()))
                 .toList();
         Assert.that(Objects.equals(servers.size(), candidateServerIds.size()), "无效的集群");
         return servers;

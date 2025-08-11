@@ -55,6 +55,7 @@ public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcesso
     @Override
     public void createTopic(String topicName, int partitions, Integer replication) {
         // todo
+        logger.info("rocket新建topic");
     }
 
     public DefaultMQAdminExt getAdmin() {

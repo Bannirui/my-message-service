@@ -5,6 +5,7 @@ import com.github.bannirui.mms.common.EnvStatus;
 import com.github.bannirui.mms.dal.mapper.EnvMapper;
 import com.github.bannirui.mms.dal.model.Env;
 import com.github.bannirui.mms.service.manager.ZkDatasourceManagerAdapt;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class EnvDatasourceService {
     @PostConstruct
     public void init() {
         List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>().eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        if (CollectionUtils.isEmpty(envs)) {
+            logger.info("No enabled envs found");
+        }
         for (Env env : envs) {
             this.reloadEnvZkClient(env.getId());
         }

@@ -35,7 +35,7 @@ public class ApproveTopicTest {
         }};
         ObjectMapper objectMapper = new ObjectMapper();
         String reqJson = objectMapper.writeValueAsString(req);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/topic/1/approve")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/topic/4/approve")
                         .contentType(MediaType.APPLICATION_JSON_UTF8)
                         .content(reqJson))
                 .andExpect(status().isOk())

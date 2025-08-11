@@ -1,6 +1,5 @@
 package com.github.bannirui.mms.zookeeper;
 
-import com.github.bannirui.mms.common.BrokerType;
 import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.common.MmsType;
@@ -202,7 +201,7 @@ public class MmsZkClient extends ZooKeeper {
             try {
                 clusterProperties = this.parseProperties(clusterData);
                 metadata.setBootAddr(clusterProperties.getProperty("bootAddr"));
-                metadata.setBrokerType(BrokerType.getByCode(Integer.valueOf(clusterProperties.getProperty("brokerType"))));
+                metadata.setBrokerType(Integer.valueOf(clusterProperties.getProperty("brokerType")));
                 metadata.setClusterName(clusterName);
                 metadata.setServerIps(clusterProperties.getProperty("serverIps"));
                 return metadata;
@@ -378,7 +377,7 @@ public class MmsZkClient extends ZooKeeper {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("bootAddr=" + clusterMetadata.getBootAddr());
         stringBuilder.append(System.lineSeparator());
-        stringBuilder.append("brokerType=" + clusterMetadata.getBrokerType().getDesc());
+        stringBuilder.append("brokerType=" + clusterMetadata.getBrokerType());
         stringBuilder.append(System.lineSeparator());
         stringBuilder.append("serverIps=" + clusterMetadata.getServerIps());
         return stringBuilder.toString();

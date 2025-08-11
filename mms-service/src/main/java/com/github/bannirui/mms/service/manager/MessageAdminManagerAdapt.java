@@ -1,10 +1,12 @@
 package com.github.bannirui.mms.service.manager;
 
+import com.github.bannirui.mms.common.BrokerType;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.service.manager.kafka.KafkaMiddlewareManager;
 import com.github.bannirui.mms.service.manager.rocket.RocketMqMiddlewareManager;
 import com.github.bannirui.mms.service.router.ZkRouter;
+import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,9 @@ public class MessageAdminManagerAdapt {
     @Autowired
     ZkRouter zkRouter;
 
+    /**
+     * @param clusterName mq集群名
+     */
     public MiddlewareProcess getOrCreateAdmin(String clusterName) {
         String genKey = this.generateKey(clusterName);
         if (!this.implMap.containsKey(genKey)) {
@@ -42,19 +47,26 @@ public class MessageAdminManagerAdapt {
         return Objects.isNull(envId) ? "&" + clusterName : envId + "&" + clusterName;
     }
 
+    /**
+     * @param clusterName mq集群名
+     */
     private AbstractMessageMiddlewareProcessor createAdmin(String clusterName) {
         MmsZkClient zkClient = this.zkRouter.currentZkClient();
+        // 从zk中拿到集群配置
         ClusterMetadata clusterMetadata = zkClient.readClusterMetadata(clusterName);
+        Assert.that(Objects.nonNull(clusterMetadata), "Cluster metadata not found for " + clusterName);
         Long env = MmsContextManager.getEnv();
         AbstractMessageMiddlewareProcessor middlewareProcess;
         AbstractMessageMiddlewareProcessor.RollBack rollBack = () -> {
             MmsContextManager.setEnv(env);
             rm(clusterName);
         };
-        switch (clusterMetadata.getBrokerType()) {
+        // 集群类型
+        BrokerType brokerType = BrokerType.getByCode(clusterMetadata.getBrokerType());
+        switch (brokerType) {
             case KAFKA -> middlewareProcess = new KafkaMiddlewareManager(zkClient, clusterMetadata, rollBack);
             case ROCKETMQ -> middlewareProcess = new RocketMqMiddlewareManager(zkClient, clusterMetadata, rollBack);
-            default -> throw new MmsException("Illegal cluster type");
+            default -> throw new MmsException("Illegal cluster type: " + brokerType + " for " + clusterName);
         }
         return middlewareProcess;
     }
