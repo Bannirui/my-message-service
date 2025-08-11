@@ -3,7 +3,7 @@ package com.github.bannirui.mms.service.manager;
 public interface MiddlewareProcess {
 
     /**
-     * 封装中间件差异性 委托向broker申请创建topic
+     * 封装中间件差异性 委托向nameserv申请创建topic
      *
      * @param topicName   topic name
      * @param partitions  分区数

@@ -4,13 +4,23 @@ import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.service.manager.AbstractMessageMiddlewareProcessor;
 import com.github.bannirui.mms.service.mq.rocket.MQAdminExtImpl;
+import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcessor {
 
@@ -54,8 +64,46 @@ public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcesso
 
     @Override
     public void createTopic(String topicName, int partitions, Integer replication) {
-        // todo
-        logger.info("rocket新建topic");
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName(topicName);
+        topicConfig.setWriteQueueNums(partitions);
+        topicConfig.setReadQueueNums(partitions);
+        topicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
+        List<String> failedServers = new ArrayList<>();
+        try {
+            ClusterInfo clusterInfo = this.defaultMQAdminExt.examineBrokerClusterInfo();
+            Set<String> brokerNames = clusterInfo.getClusterAddrTable().get(clusterName);
+            Assert.that(CollectionUtils.isNotEmpty(brokerNames), clusterName + ", brokerNames is empty, can not create topic");
+            for (String brokerName : brokerNames) {
+                this.defaultMQAdminExt.createAndUpdateTopicConfig(clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr(), topicConfig);
+                logger.info("topic {} created to {}", topicConfig.getTopicName(), clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr());
+            }
+            TopicRouteData topicRouteData;
+            Thread.sleep(1_000);
+            try {
+                topicRouteData = this.defaultMQAdminExt.examineTopicRouteInfo(topicName);
+            } catch (Throwable ex) {
+                logger.warn("examine topic failed", ex);
+                Thread.sleep(3_000);
+                topicRouteData = this.defaultMQAdminExt.examineTopicRouteInfo(topicName);
+            }
+            List<String> createdBrokers = topicRouteData.getBrokerDatas().stream().map(t -> {
+                logger.info("{} created in {}", topicConfig.getTopicName(), t.selectBrokerAddr());
+                return t.getBrokerName();
+            }).toList();
+            for (String brokerName : brokerNames) {
+                if (!createdBrokers.contains(brokerName)) {
+                    failedServers.add(brokerName);
+                }
+            }
+        } catch (Exception err) {
+            logger.error("create topic error", err);
+            throw new MmsException(err.getMessage());
+        }
+        if (!CollectionUtils.isEmpty(failedServers)) {
+            logger.error("Failed to create topic resource,:{},cluster:{}", failedServers, clusterName);
+            throw new MmsException("Failed to create topic resource");
+        }
     }
 
     public DefaultMQAdminExt getAdmin() {
