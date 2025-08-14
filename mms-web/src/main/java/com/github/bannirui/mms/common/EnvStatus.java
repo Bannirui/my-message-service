@@ -5,6 +5,7 @@ import lombok.Getter;
 @Getter
 public enum EnvStatus {
 
+    DELETE(0, "删除"),
     CREATE_NEW(1, "新建"),
     ENABLE(1 << 1, "可用"),
     DISABLE(1 << 2, "禁用"),

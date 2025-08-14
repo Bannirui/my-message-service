@@ -14,15 +14,11 @@ VALUES ('Kafka集群A', '192.168.1.100:9092', 1, 1),
 
 CREATE TABLE `env`
 (
-    `id`     BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    `name`   varchar(256) comment '环境',
-    `status` int not null default -1 comment '状态'
+    `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name`    varchar(256) comment '环境',
+    `status`  int not null default -1 comment '状态',
+    `sort_id` int not null default 0 comment '排序用'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='环境';
-INSERT INTO `env` (`name`, `status`)
-
-VALUES ('开发环境', 1),
-       ('测试环境', 1),
-       ('生产环境', 1);
 
 CREATE TABLE `topic`
 (
