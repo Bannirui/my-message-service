@@ -14,6 +14,13 @@ public class TopicEnvServerRef {
      */
     private Long topicId;
     private String topicName;
+    private Integer topicStatus;
+    private Long userId;
+    private Long appId;
+    private Integer tps;
+    private Integer msgSz;
+    private Integer partitions;
+    private String remark;
 
     /**
      * @see Env

@@ -1,19 +1,42 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper" >
-  <select id="getByTopicId" resultType="com.github.bannirui.mms.dal.model.TopicEnvServerRef">
-    select tes.id as tes_id,
-           tes.topic_id,
-           topic.name  as topic_name,
-           tes.env_id,
-           env.name    as env_name,
-           tes.server_id,
-           server.name as server_name,
-           server.type as server_type
-    from topic_env_server as tes
-           LEFT JOIN topic on tes.topic_id = topic.id
-           LEFT JOIN env on tes.env_id = env.id
-           LEFT JOIN server on tes.server_id = server.id
-    where tes.topic_id = #{topicId}
-  </select>
+<mapper namespace="com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper">
+    <select id="getByTopicId" resultType="com.github.bannirui.mms.dal.model.TopicEnvServerRef">
+        select tes.id      as tes_id,
+               tes.topic_id,
+               topic.name  as topic_name,
+               tes.env_id,
+               env.name    as env_name,
+               tes.server_id,
+               server.name as server_name,
+               server.type as server_type
+        from topic_env_server as tes
+                 LEFT JOIN topic on tes.topic_id = topic.id
+                 LEFT JOIN env on tes.env_id = env.id
+                 LEFT JOIN server on tes.server_id = server.id
+        where tes.topic_id = #{topicId}
+    </select>
+    <select id="getByTopicIds" resultType="com.github.bannirui.mms.dal.model.TopicEnvServerRef">
+        select topic.id as topic_id,
+        topic.name as topic_name,
+        topic.status as topic_status,
+        topic.user_id as user_id,
+        topic.app_id as app_id,
+        topic.tps as tps,
+        topic.msg_sz as msg_sz,
+        topic.remark as remark,
+        env.id as env_id,
+        env.name as env_name,
+        server.id as server_id,
+        server.name as server_name,
+        server.type as server_type
+        from topic
+        LEFT JOIN topic_env_server as tes on tes.topic_id = topic.id
+        LEFT JOIN env on tes.env_id = env.id
+        LEFT JOIN server on tes.server_id = server.id
+        where topic.id in
+        <foreach collection="topicIds" item="topicId" open="(" separator="," close=")">
+            #{topicId}
+        </foreach>
+    </select>
 </mapper>

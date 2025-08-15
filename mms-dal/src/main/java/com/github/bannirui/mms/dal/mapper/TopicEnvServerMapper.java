@@ -11,4 +11,6 @@ import java.util.List;
 @Mapper
 public interface TopicEnvServerMapper extends BaseMapper<TopicEnvServer> {
     List<TopicEnvServerRef> getByTopicId(@Param("topicId") Long topicId);
+
+    List<TopicEnvServerRef> getByTopicIds(@Param("topicIds") List<Long> topicIds);
 }

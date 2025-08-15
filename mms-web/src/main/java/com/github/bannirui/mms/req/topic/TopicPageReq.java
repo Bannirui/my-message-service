@@ -6,5 +6,7 @@ import lombok.Data;
 public class TopicPageReq {
     private Integer page;
     private Integer size;
+    private String topicName;
+    private Long userId;
 }
 

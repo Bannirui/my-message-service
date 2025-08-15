@@ -1,7 +1,6 @@
 package com.github.bannirui.mms.service.topic;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.bannirui.mms.common.ServerStatus;
@@ -10,11 +9,9 @@ import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
-import com.github.bannirui.mms.dal.model.Server;
-import com.github.bannirui.mms.dal.model.Topic;
-import com.github.bannirui.mms.dal.model.TopicEnvServer;
-import com.github.bannirui.mms.dal.model.TopicEnvServerRef;
+import com.github.bannirui.mms.dal.model.*;
 import com.github.bannirui.mms.dto.topic.MmsTopicConfigInfo;
+import com.github.bannirui.mms.dto.topic.TopicRefDTO;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
@@ -22,7 +19,9 @@ import com.github.bannirui.mms.service.manager.MessageAdminManagerAdapt;
 import com.github.bannirui.mms.service.manager.MiddlewareProcess;
 import com.github.bannirui.mms.service.manager.MmsContextManager;
 import com.github.bannirui.mms.util.Assert;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -263,11 +263,48 @@ public class TopicService {
         }
     }
 
-    public IPage<TopicEnvServerRef> queryTopicsPage(TopicPageReq req) {
-        Page<TopicEnvServerRef> page = new Page<>(req.getPage(), req.getSize());
-        IPage<TopicEnvServerRef> ret = this.topicMapper.pageAll(page);
-        this.topicMapper.selectPage(page, new LambdaQueryWrapper<>(Topic.class)
-                .ne(Topic::getStatus, TopicStatus.DELETED.getCode()))
+    public List<TopicRefDTO> queryTopicsPage(TopicPageReq req, Consumer<Long> cnt) {
+        // 所有topic
+        Page<Topic> topics = this.topicMapper.selectPage(new Page<>(req.getPage(), req.getSize()), new LambdaQueryWrapper<>(Topic.class)
+                .select(Topic::getId)
+                .ne(Topic::getStatus, TopicStatus.DELETED.getCode())
+                .eq(StringUtils.isNotEmpty(req.getTopicName()), Topic::getName, req.getTopicName())
+                .eq(Objects.nonNull(req.getUserId()), Topic::getUserId, req.getUserId())
+        );
+        if (Objects.nonNull(cnt)) {
+            cnt.accept(topics.getTotal());
+        }
+        List<Long> topicIds = topics.getRecords().stream().map(Topic::getId).toList();
+        if (CollectionUtils.isEmpty(topicIds)) {
+            return Collections.emptyList();
+        }
+        List<TopicEnvServerRef> topicRefs = this.topicEnvServerMapper.getByTopicIds(topicIds);
+        Map<Long, List<TopicEnvServerRef>> groupByTopic = topicRefs.stream().collect(Collectors.groupingBy(TopicEnvServerRef::getTopicId));
+        List<TopicRefDTO> ret = new ArrayList<>();
+        groupByTopic.forEach((topicId, topicEnvServerRefs) -> {
+            TopicEnvServerRef topic = topicEnvServerRefs.get(0);
+            ret.add(new TopicRefDTO() {{
+                setTopic(new Topic() {{
+                    setId(topic.getTopicId());
+                    setName(topic.getTopicName());
+                    setStatus(topic.getTopicStatus());
+                    setUserId(topic.getUserId());
+                    setAppId(topic.getAppId());
+                    setTps(topic.getTps());
+                    setMsgSz(topic.getMsgSz());
+                    setPartitions(topic.getPartitions());
+                    setRemark(topic.getRemark());
+                }});
+                List<Env> envs = new ArrayList<>();
+                topicEnvServerRefs.forEach(env -> {
+                    envs.add(new Env() {{
+                        setId(env.getEnvId());
+                        setName(env.getEnvName());
+                    }});
+                });
+                setEnvs(envs);
+            }});
+        });
         return ret;
     }
 }
