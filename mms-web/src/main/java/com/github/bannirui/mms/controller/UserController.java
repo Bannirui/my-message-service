@@ -25,6 +25,7 @@ public class UserController {
             setIntroduction("I am a super administrator");
             setAvatar("https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif");
             setName("Super Admin");
+            setId(1L);
         }});
         put("editor-token", new UserDTO() {{
             setRoles(new ArrayList<String>() {{
@@ -33,6 +34,7 @@ public class UserController {
             setIntroduction("I am an editor");
             setAvatar("https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif");
             setName("Normal Editor");
+            setId(2L);
         }});
     }};
 

@@ -10,4 +10,6 @@ public class UserDTO {
     private String introduction;
     private String avatar;
     private String name;
+    // user id 用户表的id
+    private Long id;
 }
