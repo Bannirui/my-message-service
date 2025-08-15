@@ -5,6 +5,7 @@ import com.github.bannirui.mms.dal.model.TopicEnvServerRef;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
+import com.github.bannirui.mms.resp.topic.TopicPageResp;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.topic.TopicService;
@@ -13,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -72,8 +74,10 @@ public class TopicController {
     }
 
     @GetMapping(value = "/querypage")
-    public PageResult<TopicEnvServerRef> queryTopicsPage(TopicPageReq req) {
-        IPage<TopicEnvServerRef> ret = topicService.queryTopicsPage(req);
-        return PageResult.success(ret.getTotal(), ret.getRecords());
+    public PageResult<TopicPageResp> queryTopicsPage(TopicPageReq req) {
+        IPage<TopicEnvServerRef> pageRet = topicService.queryTopicsPage(req);
+        TopicPageResp ret = new TopicPageResp();
+        List<TopicPageResp> ls = new ArrayList<>();
+        return PageResult.success(pageRet.getTotal(), ls);
     }
 }

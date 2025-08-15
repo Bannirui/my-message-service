@@ -1,10 +1,11 @@
 package com.github.bannirui.mms.service.topic;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.common.ServerStatus;
+import com.github.bannirui.mms.common.TopicStatus;
 import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper;
@@ -67,7 +68,7 @@ public class TopicService {
         topic.setMsgSz(req.getMsgSz());
         topic.setRemark(req.getRemark());
         // 申请
-        topic.setStatus(ResourceStatus.CREATE_NEW.getCode());
+        topic.setStatus(TopicStatus.CREATE_NEW.getCode());
         int count = topicMapper.insert(topic);
         // 集群是由管理员审批时候分配的
         req.getEnvs().forEach(env -> this.installTopicEnvRef(operator, topic, null, env.getEnvId()));
@@ -152,7 +153,7 @@ public class TopicService {
         this.topicMapper.updateById(
                 new Topic() {{
                     setId(topicId);
-                    setStatus(ResourceStatus.CREATE_APPROVED.getCode());
+                    setStatus(TopicStatus.CREATE_APPROVED.getCode());
                 }}
         );
         return initFailEnv;
@@ -178,7 +179,7 @@ public class TopicService {
         String topicName = topic.getName();
         MmsTopicConfigInfo topicConfigInfo = this.buildTopicConfigInfo(topic, server);
         // 给主题首次分配集群or给主题换集群
-        if (Objects.equals(ResourceStatus.CREATE_NEW.getCode(), topic.getStatus())
+        if (Objects.equals(TopicStatus.CREATE_NEW.getCode(), topic.getStatus())
                 || !Objects.equals(server.getId(), curServerId)) {
             this.createTopic(topicConfigInfo);
             this.zkRegister.registerTopic2Zk(clusterName, topicName, server.getType());
@@ -265,6 +266,8 @@ public class TopicService {
     public IPage<TopicEnvServerRef> queryTopicsPage(TopicPageReq req) {
         Page<TopicEnvServerRef> page = new Page<>(req.getPage(), req.getSize());
         IPage<TopicEnvServerRef> ret = this.topicMapper.pageAll(page);
+        this.topicMapper.selectPage(page, new LambdaQueryWrapper<>(Topic.class)
+                .ne(Topic::getStatus, TopicStatus.DELETED.getCode()))
         return ret;
     }
 }
