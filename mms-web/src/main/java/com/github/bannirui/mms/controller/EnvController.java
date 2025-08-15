@@ -10,6 +10,7 @@ import com.github.bannirui.mms.req.env.UpdateStatusReq;
 import com.github.bannirui.mms.resp.env.ListEnvResp;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.util.Assert;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,7 @@ public class EnvController {
     /**
      * 新增
      */
-    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/add")
     public Result<Integer> add(@RequestBody AddEnvReq req) {
         boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).eq(Env::getName, req.getName()));
         Assert.that(!exists, "环境名称重复");
@@ -49,6 +50,22 @@ public class EnvController {
         List<ListEnvResp> ret = new ArrayList<>();
         for (Env env : envs) {
             ret.add(new ListEnvResp(env.getId(), env.getName(), env.getSortId(), env.getStatus()));
+        }
+        return Result.success(ret);
+    }
+
+    /**
+     * 可用环境
+     */
+    @GetMapping(value = "/allEnableEnv")
+    public Result<List<ListEnvResp>> allEnableEnv() {
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        List<ListEnvResp> ret = new ArrayList<>();
+        for (Env env : envs) {
+            ret.add(new ListEnvResp(env.getId(), env.getName(), env.getSortId(), env.getStatus()));
+        }
+        if (CollectionUtils.isNotEmpty(ret)) {
+            ret.sort((o1, o2) -> o2.getSortId().compareTo(o1.getSortId()));
         }
         return Result.success(ret);
     }
@@ -84,7 +101,9 @@ public class EnvController {
         if (Objects.equals(env.getName(), req.getName()) && Objects.equals(env.getSortId(), req.getSortId())) {
             return Result.success(null);
         }
-        boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).eq(Env::getName, req.getName()));
+        boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class)
+                .ne(Env::getId, id)
+                .eq(Env::getName, req.getName()));
         Assert.that(!exists, "环境名称重复");
         this.envMapper.updateById(new Env() {{
             setId(id);

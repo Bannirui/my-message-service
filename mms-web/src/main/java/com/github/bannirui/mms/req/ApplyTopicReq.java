@@ -38,6 +38,7 @@ public class ApplyTopicReq {
      * 需要申请哪些环境的topic
      */
     private List<TopicEnvInfo> envs;
+    private String remark;
 
     @Data
     public static class TopicEnvInfo {

@@ -44,4 +44,8 @@ public class Topic {
     private Integer status;
     private Integer partitions;
     private Integer replication;
+    /**
+     * 申请topic时的备注信息
+     */
+    private String remark;
 }

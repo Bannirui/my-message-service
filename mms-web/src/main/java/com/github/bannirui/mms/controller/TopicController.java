@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.github.bannirui.mms.dal.model.TopicEnvServerRef;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
-import com.github.bannirui.mms.req.TopicPageReq;
+import com.github.bannirui.mms.req.topic.TopicPageReq;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.topic.TopicService;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Objects;
 
 @RestController
-@RequestMapping(path = "api/topic")
+@RequestMapping(path = "/api/topic")
 public class TopicController {
 
     @Autowired
@@ -26,7 +26,7 @@ public class TopicController {
     /**
      * 申请topic
      */
-    @PostMapping(value = "/add")
+    @PostMapping(path = "/add")
     public Result<Integer> addTopic(@RequestBody ApplyTopicReq req) {
         if (Objects.isNull(req.getUserId())) {
             return Result.error(401, "申请人必填");

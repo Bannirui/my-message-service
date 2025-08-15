@@ -1,8 +1,6 @@
-package com.github.bannirui.mms.req;
+package com.github.bannirui.mms.req.topic;
 
 import lombok.Data;
-
-import java.util.List;
 
 @Data
 public class TopicPageReq {

@@ -32,6 +32,7 @@ CREATE TABLE `topic`
     `status`       INT          NOT NULL DEFAULT -1 COMMENT '状态',
     `partitions`   INT          NOT NULL DEFAULT 0 COMMENT '分区数',
     `replication`  INT          NOT NULL DEFAULT 0 COMMENT '副本数'
+    `remark`         VARCHAR(1024) NOT NULL COMMENT '申请topic的备注',
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主题表';
 
 CREATE TABLE `topic_env_server`

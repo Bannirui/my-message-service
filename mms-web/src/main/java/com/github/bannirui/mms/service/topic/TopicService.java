@@ -3,7 +3,6 @@ package com.github.bannirui.mms.service.topic;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.github.bannirui.mms.common.BrokerType;
 import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.common.ServerStatus;
 import com.github.bannirui.mms.common.ZkRegister;
@@ -15,11 +14,9 @@ import com.github.bannirui.mms.dal.model.Topic;
 import com.github.bannirui.mms.dal.model.TopicEnvServer;
 import com.github.bannirui.mms.dal.model.TopicEnvServerRef;
 import com.github.bannirui.mms.dto.topic.MmsTopicConfigInfo;
-import com.github.bannirui.mms.dto.topic.TopicDTO;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
-import com.github.bannirui.mms.req.TopicPageReq;
-import com.github.bannirui.mms.service.domain.page.PageResult;
+import com.github.bannirui.mms.req.topic.TopicPageReq;
 import com.github.bannirui.mms.service.manager.MessageAdminManagerAdapt;
 import com.github.bannirui.mms.service.manager.MiddlewareProcess;
 import com.github.bannirui.mms.service.manager.MmsContextManager;
@@ -68,6 +65,7 @@ public class TopicService {
         topic.setAppId(req.getAppId());
         topic.setTps(req.getTps());
         topic.setMsgSz(req.getMsgSz());
+        topic.setRemark(req.getRemark());
         // 申请
         topic.setStatus(ResourceStatus.CREATE_NEW.getCode());
         int count = topicMapper.insert(topic);
