@@ -5,6 +5,7 @@ import com.github.bannirui.mms.common.EnvStatus;
 import com.github.bannirui.mms.dal.mapper.EnvMapper;
 import com.github.bannirui.mms.dal.model.Env;
 import com.github.bannirui.mms.req.env.AddEnvReq;
+import com.github.bannirui.mms.req.env.UpdateEnvReq;
 import com.github.bannirui.mms.req.env.UpdateStatusReq;
 import com.github.bannirui.mms.resp.env.ListEnvResp;
 import com.github.bannirui.mms.result.Result;
@@ -72,6 +73,23 @@ public class EnvController {
         this.envMapper.updateById(new Env() {{
             setId(id);
             setStatus(req.getStatus());
+        }});
+        return Result.success(null);
+    }
+
+    @PutMapping(value = "/update/{id}")
+    public Result<Void> update(@PathVariable Long id, @RequestBody UpdateEnvReq req) {
+        Env env = this.envMapper.selectById(id);
+        Assert.that(Objects.nonNull(env), "不存在记录");
+        if (Objects.equals(env.getName(), req.getName()) && Objects.equals(env.getSortId(), req.getSortId())) {
+            return Result.success(null);
+        }
+        boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).eq(Env::getName, req.getName()));
+        Assert.that(!exists, "环境名称重复");
+        this.envMapper.updateById(new Env() {{
+            setId(id);
+            setName(req.getName());
+            setSortId(req.getSortId());
         }});
         return Result.success(null);
     }
