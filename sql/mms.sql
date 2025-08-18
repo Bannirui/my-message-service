@@ -1,3 +1,21 @@
+CREATE TABLE `env`
+(
+    `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name`    varchar(256) comment '环境',
+    `status`  int not null default -1 comment '状态',
+    `sort_id` int not null default 0 comment '排序用'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='环境';
+
+CREATE TABLE `host`
+(
+    `id`     BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name`   varchar(256) comment 'name',
+    `host`   varchar(256) comment 'host or ip',
+    `port`   int    not null default -1 comment '端口',
+    `env_id` bigint not null default -1 comment '哪个环境',
+    `status` int    not null default -1 comment '状态'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='主机';
+
 CREATE TABLE `server`
 (
     `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -13,14 +31,6 @@ VALUES ('Kafka集群A', '192.168.1.100:9092', 1, 1),
        ('Kafka集群B', '192.168.1.101:9092', 1, 1),
        ('RocketMQ集群A', '192.168.1.200:9876', 2, 1);
 
-CREATE TABLE `env`
-(
-    `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    `name`    varchar(256) comment '环境',
-    `status`  int not null default -1 comment '状态',
-    `sort_id` int not null default 0 comment '排序用'
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='环境';
 
 CREATE TABLE `topic`
 (

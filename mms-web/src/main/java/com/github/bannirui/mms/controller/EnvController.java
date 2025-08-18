@@ -8,11 +8,13 @@ import com.github.bannirui.mms.req.env.AddEnvReq;
 import com.github.bannirui.mms.req.env.UpdateEnvReq;
 import com.github.bannirui.mms.req.env.UpdateStatusReq;
 import com.github.bannirui.mms.resp.env.ListEnvResp;
+import com.github.bannirui.mms.resp.env.ListServerResp;
+import com.github.bannirui.mms.resp.host.HostResp;
+import com.github.bannirui.mms.resp.server.ServerResp;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.util.Assert;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -111,5 +113,26 @@ public class EnvController {
             setSortId(req.getSortId());
         }});
         return Result.success(null);
+    }
+
+    /**
+     * 可用环境下的服务
+     * 环境-实例-服务
+     */
+    @GetMapping(value = "/listServer")
+    public Result<List<ListServerResp>> listServer() {
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        if(CollectionUtils.isEmpty(envs)) {
+            return Result.success(new ArrayList<>());
+        }
+        List<ListServerResp> ls = new ArrayList<>();
+        for (Env env : envs) {
+            ListServerResp e = new ListServerResp();
+            e.setEnvId(env.getId());
+            e.setEnvName(env.getName());
+            e.setHosts(new ArrayList<>());
+            ls.add(e);
+        }
+        return Result.success(ls);
     }
 }
