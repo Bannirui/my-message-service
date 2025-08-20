@@ -2,8 +2,13 @@ package com.github.bannirui.mms.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.bannirui.mms.common.EnvStatus;
+import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.EnvMapper;
+import com.github.bannirui.mms.dal.mapper.HostMapper;
+import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.model.Env;
+import com.github.bannirui.mms.dal.model.Host;
+import com.github.bannirui.mms.dal.model.Server;
 import com.github.bannirui.mms.req.env.AddEnvReq;
 import com.github.bannirui.mms.req.env.UpdateEnvReq;
 import com.github.bannirui.mms.req.env.UpdateStatusReq;
@@ -17,9 +22,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "api/env")
@@ -27,6 +31,10 @@ public class EnvController {
 
     @Autowired
     private EnvMapper envMapper;
+    @Autowired
+    private HostMapper hostMapper;
+    @Autowired
+    private ServerMapper serverMapper;
 
     /**
      * 新增
@@ -103,9 +111,7 @@ public class EnvController {
         if (Objects.equals(env.getName(), req.getName()) && Objects.equals(env.getSortId(), req.getSortId())) {
             return Result.success(null);
         }
-        boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class)
-                .ne(Env::getId, id)
-                .eq(Env::getName, req.getName()));
+        boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).ne(Env::getId, id).eq(Env::getName, req.getName()));
         Assert.that(!exists, "环境名称重复");
         this.envMapper.updateById(new Env() {{
             setId(id);
@@ -122,17 +128,40 @@ public class EnvController {
     @GetMapping(value = "/listServer")
     public Result<List<ListServerResp>> listServer() {
         List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
-        if(CollectionUtils.isEmpty(envs)) {
+        if (CollectionUtils.isEmpty(envs)) {
             return Result.success(new ArrayList<>());
         }
-        List<ListServerResp> ls = new ArrayList<>();
+        List<ListServerResp> ret = new ArrayList<>();
+        Set<Long> envIds = envs.stream().map(Env::getId).collect(Collectors.toSet());
+        Map<Long, List<Host>> hostGroup8Env = this.hostMapper.selectList(new LambdaQueryWrapper<>(Host.class)
+                .eq(Host::getStatus, ResourceStatus.ENABLE.getCode())
+                .in(Host::getEnvId, envIds)).stream().collect(Collectors.groupingBy(Host::getEnvId));
         for (Env env : envs) {
             ListServerResp e = new ListServerResp();
             e.setEnvId(env.getId());
             e.setEnvName(env.getName());
-            e.setHosts(new ArrayList<>());
-            ls.add(e);
+            if (hostGroup8Env.containsKey(env.getId())) {
+                List<Host> hosts = hostGroup8Env.get(env.getId());
+                List<HostResp> retHosts = new ArrayList<>();
+                for (Host host : hosts) {
+                    HostResp y = new HostResp();
+                    y.setId(host.getId());
+                    y.setName(host.getName());
+                    List<ServerResp> retServers = this.serverMapper.selectList(new LambdaQueryWrapper<>(Server.class)
+                            .eq(Server::getStatus, ResourceStatus.ENABLE.getCode())
+                            .in(Server::getHostId, host.getId())).stream().map(x -> {
+                        ServerResp z = new ServerResp();
+                        z.setId(x.getId());
+                        z.setName(x.getName());
+                        return z;
+                    }).toList();
+                    y.setServers(retServers);
+                    retHosts.add(y);
+                }
+                e.setHosts(retHosts);
+            }
+            ret.add(e);
         }
-        return Result.success(ls);
+        return Result.success(ret);
     }
 }

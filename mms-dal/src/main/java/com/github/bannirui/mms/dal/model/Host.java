@@ -12,7 +12,6 @@ public class Host {
     private Long id;
     private String name;
     private String host;
-    private Integer port;
     private Long envId;
     private Integer status;
 }

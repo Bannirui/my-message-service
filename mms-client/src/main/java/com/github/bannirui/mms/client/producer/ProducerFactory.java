@@ -1,6 +1,6 @@
 package com.github.bannirui.mms.client.producer;
 
-import com.github.bannirui.mms.common.BrokerType;
+import com.github.bannirui.mms.common.HostServerType;
 import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
@@ -75,7 +75,7 @@ public class ProducerFactory {
                         throw MmsException.METAINFO_EXCEPTION;
                     }
                     logger.info("Producer create: topic metadata is {}", metadata.toString());
-                    if (BrokerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
+                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
                         producer = new RocketmqProducerProxy(metadata, false, name, properties);
                     } else {
                         producer = new KafkaProducerProxy(metadata, false, name, properties);
@@ -102,7 +102,7 @@ public class ProducerFactory {
                         throw MmsException.METAINFO_EXCEPTION;
                     }
                     logger.info("Producer create: topic metadata is {}", metadata.toString());
-                    if (BrokerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
+                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
                         producer = new RocketmqProducerProxy(metadata, false, name);
                     } else {
                         producer = new KafkaProducerProxy(metadata, false, name);

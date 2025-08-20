@@ -1,6 +1,6 @@
 package com.github.bannirui.mms.client.consumer;
 
-import com.github.bannirui.mms.common.BrokerType;
+import com.github.bannirui.mms.common.HostServerType;
 import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
@@ -45,7 +45,7 @@ public class ConsumerFactory {
                     if (properties.containsKey(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY)) {
                         isOrderly = Boolean.parseBoolean(properties.getProperty(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY));
                     }
-                    if (BrokerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
+                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
                         consumer = new RocketmqConsumerProxy(metadata, isOrderly, name, tags, properties, listener);
                     } else {
                         consumer = new KafkaConsumerProxy(metadata, isOrderly, name, properties, listener);

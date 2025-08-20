@@ -1,6 +1,6 @@
 package com.github.bannirui.mms.metadata;
 
-import com.github.bannirui.mms.common.BrokerType;
+import com.github.bannirui.mms.common.HostServerType;
 import lombok.Data;
 
 /**
@@ -17,7 +17,7 @@ public class ClusterMetadata {
     private String bootAddr;
     /**
      * mq中间件类型
-     * {@link BrokerType}
+     * {@link HostServerType}
      */
     private Integer brokerType;
     private String serverIps;

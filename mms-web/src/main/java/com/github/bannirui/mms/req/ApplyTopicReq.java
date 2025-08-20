@@ -1,5 +1,6 @@
 package com.github.bannirui.mms.req;
 
+import com.github.bannirui.mms.common.HostServerType;
 import lombok.Data;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public class ApplyTopicReq {
     private Integer msgSz;
     /**
      * 集群类型
-     * {@link com.github.bannirui.mms.common.BrokerType}
+     * {@link HostServerType}
      */
     private Integer clusterType;
     /**

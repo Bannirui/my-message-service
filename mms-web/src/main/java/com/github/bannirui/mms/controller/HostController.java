@@ -23,20 +23,20 @@ public class HostController {
 
     /**
      * 新增
+     * @return 数据库id
      */
     @PostMapping(value = "/add/{envId}")
-    public Result<Void> add(@PathVariable Long envId, @RequestBody AddHostReq req) {
+    public Result<Long> add(@PathVariable Long envId, @RequestBody AddHostReq req) {
         boolean envExists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).eq(Env::getId, envId));
         Assert.that(envExists, "环境不存在");
-        boolean hostExists = this.hostMapper.exists(new LambdaQueryWrapper<>(Host.class).eq(Host::getEnvId, envId).eq(Host::getEnvId, req.getHost()).eq(Host::getPort, req.getPort()));
+        boolean hostExists = this.hostMapper.exists(new LambdaQueryWrapper<>(Host.class).eq(Host::getEnvId, envId).eq(Host::getEnvId, req.getHost()));
         Assert.that(!hostExists, "Host已经存在了");
         Host host = new Host();
         host.setName(req.getName());
         host.setEnvId(envId);
         host.setHost(req.getHost());
-        host.setPort(req.getPort());
         host.setStatus(ResourceStatus.ENABLE.getCode());
         int insert = this.hostMapper.insert(host);
-        return Result.success(null);
+        return Result.success(host.getId());
     }
 }

@@ -1,7 +1,7 @@
 package com.github.bannirui.mms.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.bannirui.mms.common.BrokerType;
+import com.github.bannirui.mms.common.HostServerType;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,7 @@ public class CreateTopicTest {
         ApplyTopicReq req = new ApplyTopicReq() {{
             setUserId(1L);
             setName("test_topic_1");
-            setClusterType(BrokerType.ROCKETMQ.getCode());
+            setClusterType(HostServerType.ROCKETMQ.getCode());
             setAppId(2L);
             setTps(1000);
             setMsgSz(1000);
@@ -58,7 +58,7 @@ public class CreateTopicTest {
         ApplyTopicReq req = new ApplyTopicReq() {{
             setUserId(1L);
             setName("test_topic_2");
-            setClusterType(BrokerType.ROCKETMQ.getCode());
+            setClusterType(HostServerType.ROCKETMQ.getCode());
             setAppId(2L);
             setTps(1000);
             setMsgSz(1000);

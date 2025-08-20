@@ -10,20 +10,9 @@ import lombok.Data;
 public class Server {
     @TableId(type = IdType.AUTO)
     private Long id;
-    /**
-     * 集群名称
-     */
     private String name;
-    /**
-     * broker addr
-     */
-    private String address;
-    /**
-     * <ul>
-     *     <li>1 kafka</li>
-     *     <li>2 rocket</li>
-     * </ul>
-     */
     private Integer type;
+    private Integer port;
     private Integer status;
+    private Long hostId;
 }

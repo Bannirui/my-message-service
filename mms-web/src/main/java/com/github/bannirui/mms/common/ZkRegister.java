@@ -18,7 +18,7 @@ public class ZkRegister {
     private ZkRouter zkRouter;
 
     /**
-     * @param brokerType {@link BrokerType}
+     * @param brokerType {@link HostServerType}
      */
     public void registerTopic2Zk(String clusterName, String topicName, Integer brokerType) {
         TopicMetadata metadata = new TopicMetadata();

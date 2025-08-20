@@ -11,26 +11,19 @@ CREATE TABLE `host`
     `id`     BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `name`   varchar(256) comment 'name',
     `host`   varchar(256) comment 'host or ip',
-    `port`   int    not null default -1 comment '端口',
     `env_id` bigint not null default -1 comment '哪个环境',
     `status` int    not null default -1 comment '状态'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='主机';
 
 CREATE TABLE `server`
 (
-    `id`      BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    `name`    varchar(128) comment '集群名',
-    `address` varchar(256) comment 'ip:port or url',
-    `type`    INT NOT NULL DEFAULT -1 COMMENT 'mq类型 1=kafka 2=rocket',
-    `status`  int not null default -1 comment '集群服务器状态'
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='集群';
-
-INSERT INTO `server` (`name`, `address`, `type`, `status`)
-VALUES ('Kafka集群A', '192.168.1.100:9092', 1, 1),
-       ('Kafka集群B', '192.168.1.101:9092', 1, 1),
-       ('RocketMQ集群A', '192.168.1.200:9876', 2, 1);
-
+    `id`     BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name`   varchar(128) comment '服务名',
+    `type`   int not null default 0 comment '服务类型',
+    `port`   INT NOT NULL DEFAULT -1 COMMENT '服务在主机上的端口',
+    `status` int not null default -1 comment '状态',
+    `host_id`    bigint NOT NULL DEFAULT -1 COMMENT '关联主机'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='服务';
 
 CREATE TABLE `topic`
 (
