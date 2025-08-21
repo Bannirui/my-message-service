@@ -1,17 +1,18 @@
 package com.github.bannirui.mms.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.github.bannirui.mms.common.EnvStatus;
 import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.EnvMapper;
 import com.github.bannirui.mms.dal.mapper.HostMapper;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.model.Env;
+import com.github.bannirui.mms.dal.model.EnvHostServerExt;
 import com.github.bannirui.mms.dal.model.Host;
 import com.github.bannirui.mms.dal.model.Server;
 import com.github.bannirui.mms.req.env.AddEnvReq;
 import com.github.bannirui.mms.req.env.UpdateEnvReq;
 import com.github.bannirui.mms.req.env.UpdateStatusReq;
+import com.github.bannirui.mms.req.env.UpdateZkReq;
 import com.github.bannirui.mms.resp.env.ListEnvResp;
 import com.github.bannirui.mms.resp.env.ListServerResp;
 import com.github.bannirui.mms.resp.host.HostResp;
@@ -37,18 +38,19 @@ public class EnvController {
     private ServerMapper serverMapper;
 
     /**
-     * 新增
+     * 添加环境
+     * @return 新增环境的id
      */
     @PostMapping(value = "/add")
-    public Result<Integer> add(@RequestBody AddEnvReq req) {
+    public Result<Long> add(@RequestBody AddEnvReq req) {
         boolean exists = this.envMapper.exists(new LambdaQueryWrapper<>(Env.class).eq(Env::getName, req.getName()));
         Assert.that(!exists, "环境名称重复");
         Env env = new Env();
         env.setName(req.getName());
         env.setSortId(req.getSortId());
-        env.setStatus(EnvStatus.CREATE_NEW.getCode());
-        int insert = this.envMapper.insert(env);
-        return Result.success(insert);
+        env.setStatus(ResourceStatus.ENABLE.getCode());
+        this.envMapper.insert(env);
+        return Result.success(env.getId());
     }
 
     /**
@@ -56,10 +58,17 @@ public class EnvController {
      */
     @GetMapping(value = "/allEnv")
     public Result<List<ListEnvResp>> allEnv() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).ne(Env::getStatus, EnvStatus.DELETE.getCode()));
+        List<EnvHostServerExt> envs = this.envMapper.selectNotDel();
         List<ListEnvResp> ret = new ArrayList<>();
-        for (Env env : envs) {
-            ret.add(new ListEnvResp(env.getId(), env.getName(), env.getSortId(), env.getStatus()));
+        for (EnvHostServerExt env : envs) {
+            ListEnvResp e = new ListEnvResp(env.getEnvId(), env.getEnvName(), env.getEnvSortId(), env.getEnvStatus());
+            if(Objects.nonNull(env.getZkId())) {
+                e.setZkId(env.getZkId());
+                e.setZkName(env.getZkName());
+                e.setZkHost(env.getZkHost());
+                e.setZkPort(env.getZkPort());
+            }
+            ret.add(e);
         }
         return Result.success(ret);
     }
@@ -69,7 +78,7 @@ public class EnvController {
      */
     @GetMapping(value = "/allEnableEnv")
     public Result<List<ListEnvResp>> allEnableEnv() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
         List<ListEnvResp> ret = new ArrayList<>();
         for (Env env : envs) {
             ret.add(new ListEnvResp(env.getId(), env.getName(), env.getSortId(), env.getStatus()));
@@ -86,7 +95,7 @@ public class EnvController {
     @DeleteMapping(value = "/del/{id}")
     public Result<Void> del(@PathVariable Long id) {
         return this.updateStatus(id, new UpdateStatusReq() {{
-            setStatus(EnvStatus.DELETE.getCode());
+            setStatus(ResourceStatus.DELETE.getCode());
         }});
     }
 
@@ -127,15 +136,13 @@ public class EnvController {
      */
     @GetMapping(value = "/listServer")
     public Result<List<ListServerResp>> listServer() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
         if (CollectionUtils.isEmpty(envs)) {
             return Result.success(new ArrayList<>());
         }
         List<ListServerResp> ret = new ArrayList<>();
         Set<Long> envIds = envs.stream().map(Env::getId).collect(Collectors.toSet());
-        Map<Long, List<Host>> hostGroup8Env = this.hostMapper.selectList(new LambdaQueryWrapper<>(Host.class)
-                .eq(Host::getStatus, ResourceStatus.ENABLE.getCode())
-                .in(Host::getEnvId, envIds)).stream().collect(Collectors.groupingBy(Host::getEnvId));
+        Map<Long, List<Host>> hostGroup8Env = this.hostMapper.selectList(new LambdaQueryWrapper<>(Host.class).eq(Host::getStatus, ResourceStatus.ENABLE.getCode()).in(Host::getEnvId, envIds)).stream().collect(Collectors.groupingBy(Host::getEnvId));
         for (Env env : envs) {
             ListServerResp e = new ListServerResp();
             e.setEnvId(env.getId());
@@ -147,9 +154,7 @@ public class EnvController {
                     HostResp y = new HostResp();
                     y.setId(host.getId());
                     y.setName(host.getName());
-                    List<ServerResp> retServers = this.serverMapper.selectList(new LambdaQueryWrapper<>(Server.class)
-                            .eq(Server::getStatus, ResourceStatus.ENABLE.getCode())
-                            .in(Server::getHostId, host.getId())).stream().map(x -> {
+                    List<ServerResp> retServers = this.serverMapper.selectList(new LambdaQueryWrapper<>(Server.class).eq(Server::getStatus, ResourceStatus.ENABLE.getCode()).in(Server::getHostId, host.getId())).stream().map(x -> {
                         ServerResp z = new ServerResp();
                         z.setId(x.getId());
                         z.setName(x.getName());
@@ -163,5 +168,19 @@ public class EnvController {
             ret.add(e);
         }
         return Result.success(ret);
+    }
+
+    /**
+     * 给环境绑定/换绑zk服务 用来作为环境的元数据中心
+     */
+    @PutMapping(value = "/updateDataSource/{envId}")
+    public Result<Void> updateZkDataSource(@PathVariable Long envId, @RequestBody UpdateZkReq req) {
+        Env env = this.envMapper.selectById(envId);
+        Assert.that(Objects.nonNull(env), "环境不存在");
+        this.envMapper.updateById(new Env() {{
+            setId(envId);
+            setZkId(req.getZkId());
+        }});
+        return Result.success(null);
     }
 }

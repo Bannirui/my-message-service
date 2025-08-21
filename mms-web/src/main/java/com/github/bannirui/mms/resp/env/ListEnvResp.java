@@ -9,6 +9,11 @@ public class ListEnvResp {
     private Integer sortId;
     private Integer status;
 
+    private Long zkId;
+    private String zkName;
+    private String zkHost;
+    private Integer zkPort;
+
     public ListEnvResp() {
     }
 

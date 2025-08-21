@@ -1,7 +1,7 @@
 package com.github.bannirui.mms.service.env;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.github.bannirui.mms.common.EnvStatus;
+import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.EnvMapper;
 import com.github.bannirui.mms.dal.model.Env;
 import com.github.bannirui.mms.service.manager.ZkDatasourceManagerAdapt;
@@ -26,7 +26,7 @@ public class EnvDatasourceService {
 
     @PostConstruct
     public void init() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>().eq(Env::getStatus, EnvStatus.ENABLE.getCode()));
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>().eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
         if (CollectionUtils.isEmpty(envs)) {
             logger.info("No enabled envs found");
         }

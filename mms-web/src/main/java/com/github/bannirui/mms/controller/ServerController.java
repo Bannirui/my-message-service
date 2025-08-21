@@ -10,10 +10,18 @@ import com.github.bannirui.mms.dal.model.Host;
 import com.github.bannirui.mms.dal.model.Server;
 import com.github.bannirui.mms.req.host.AddHostReq;
 import com.github.bannirui.mms.req.server.AddServerReq;
+import com.github.bannirui.mms.resp.server.GetServerByTypeResp;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.util.Assert;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "api/server")
@@ -37,10 +45,33 @@ public class ServerController {
         Server server = new Server();
         server.setHostId(hostId);
         server.setName(req.getName());
-        server.setPort(req.getPort());
+        server.setType(req.getType());
         server.setPort(req.getPort());
         server.setStatus(ResourceStatus.ENABLE.getCode());
         int insert = this.serverMapper.insert(server);
         return Result.success(server.getId());
+    }
+
+    @GetMapping(value = "/{serverType}")
+    public Result<List<GetServerByTypeResp>> getServer8Type(@PathVariable Integer serverType) {
+        List<Server> servers = this.serverMapper.selectList(new LambdaQueryWrapper<Server>()
+                .eq(Server::getStatus, ResourceStatus.ENABLE.getCode())
+                .eq(Server::getType, serverType));
+        List<GetServerByTypeResp> ret = new ArrayList<>();
+        if(CollectionUtils.isEmpty(servers)) {
+            return Result.success(ret);
+        }
+        Set<Long> hostIds = servers.stream().map(Server::getHostId).collect(Collectors.toSet());
+        Map<Long, Host> hostGroup8Id = this.hostMapper.selectBatchIds(hostIds).stream().collect(Collectors.toMap(Host::getId, x -> x));
+        for (Server server : servers) {
+            Host host = hostGroup8Id.get(server.getHostId());
+            ret.add(new GetServerByTypeResp(){{
+                setServerId(server.getId());
+                setServerName(server.getName());
+                setHost(host.getHost());
+                setPort(server.getPort());
+            }});
+        }
+        return Result.success(ret);
     }
 }

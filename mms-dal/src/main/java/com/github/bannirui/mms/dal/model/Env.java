@@ -22,4 +22,8 @@ public class Env {
      * 排序用
      */
     private Integer sortId;
+    /**
+     * 环境的zk 作为当前环境的元数据注册中心
+     */
+    private Long zkId;
 }
