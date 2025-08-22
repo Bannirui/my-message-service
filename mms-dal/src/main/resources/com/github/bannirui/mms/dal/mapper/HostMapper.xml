@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.bannirui.mms.dal.mapper.HostMapper">
+    <select id="getEnvExtByHostId" resultType="com.github.bannirui.mms.dal.model.EnvHostServerExt">
+        select env.id      as envId,
+               env.name    as envName,
+               env.status  as envStatus,
+               env.sort_id as envSortId,
+               env.zk_id   as zkId,
+               server.name as zkName,
+               server.port as zkPort,
+               host.host   as zkHost
+        from host
+                 left join env on host.env_id = env.id
+                 left join server on env.zk_id = server.id
+        where host.status != 0
+  and host.id=#{hostId}
+    </select>
+</mapper>

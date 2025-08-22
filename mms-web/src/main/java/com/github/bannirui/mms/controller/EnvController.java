@@ -7,8 +7,6 @@ import com.github.bannirui.mms.dal.mapper.HostMapper;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.model.Env;
 import com.github.bannirui.mms.dal.model.EnvHostServerExt;
-import com.github.bannirui.mms.dal.model.Host;
-import com.github.bannirui.mms.dal.model.Server;
 import com.github.bannirui.mms.req.env.AddEnvReq;
 import com.github.bannirui.mms.req.env.UpdateEnvReq;
 import com.github.bannirui.mms.req.env.UpdateStatusReq;
@@ -42,6 +40,7 @@ public class EnvController {
 
     /**
      * 添加环境
+     *
      * @return 新增环境的id
      */
     @PostMapping(value = "/add")
@@ -65,7 +64,7 @@ public class EnvController {
         List<ListEnvResp> ret = new ArrayList<>();
         for (EnvHostServerExt env : envs) {
             ListEnvResp e = new ListEnvResp(env.getEnvId(), env.getEnvName(), env.getEnvSortId(), env.getEnvStatus());
-            if(Objects.nonNull(env.getZkId())) {
+            if (Objects.nonNull(env.getZkId())) {
                 e.setZkId(env.getZkId());
                 e.setZkName(env.getZkName());
                 e.setZkHost(env.getZkHost());
@@ -139,37 +138,42 @@ public class EnvController {
      */
     @GetMapping(value = "/listServer")
     public Result<List<ListServerResp>> listServer() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
-        if (CollectionUtils.isEmpty(envs)) {
+        List<EnvHostServerExt> envExts = this.envMapper.selectEnvExtEnable();
+        if (CollectionUtils.isEmpty(envExts)) {
             return Result.success(new ArrayList<>());
         }
-        List<ListServerResp> ret = new ArrayList<>();
-        Set<Long> envIds = envs.stream().map(Env::getId).collect(Collectors.toSet());
-        Map<Long, List<Host>> hostGroup8Env = this.hostMapper.selectList(new LambdaQueryWrapper<>(Host.class).eq(Host::getStatus, ResourceStatus.ENABLE.getCode()).in(Host::getEnvId, envIds)).stream().collect(Collectors.groupingBy(Host::getEnvId));
-        for (Env env : envs) {
-            ListServerResp e = new ListServerResp();
-            e.setEnvId(env.getId());
-            e.setEnvName(env.getName());
-            if (hostGroup8Env.containsKey(env.getId())) {
-                List<Host> hosts = hostGroup8Env.get(env.getId());
-                List<HostResp> retHosts = new ArrayList<>();
-                for (Host host : hosts) {
-                    HostResp y = new HostResp();
-                    y.setId(host.getId());
-                    y.setName(host.getName());
-                    List<ServerResp> retServers = this.serverMapper.selectList(new LambdaQueryWrapper<>(Server.class).eq(Server::getStatus, ResourceStatus.ENABLE.getCode()).in(Server::getHostId, host.getId())).stream().map(x -> {
-                        ServerResp z = new ServerResp();
-                        z.setId(x.getId());
-                        z.setName(x.getName());
-                        return z;
-                    }).toList();
-                    y.setServers(retServers);
-                    retHosts.add(y);
-                }
-                e.setHosts(retHosts);
+        // key is envId
+        Map<Long, ListServerResp> envMap = new HashMap<>();
+        for (EnvHostServerExt x : envExts) {
+            // env
+            ListServerResp env = envMap.computeIfAbsent(x.getEnvId(), id -> {
+                ListServerResp e = new ListServerResp();
+                e.setEnvId(x.getEnvId());
+                e.setEnvName(x.getEnvName());
+                e.setHosts(new ArrayList<>());
+                return e;
+            });
+            if (Objects.isNull(x.getHostId())) continue;
+            // host
+            Map<Long, HostResp> hostMap = env.getHosts().stream()
+                    .collect(Collectors.toMap(HostResp::getId, h -> h, (a, b) -> a));
+            HostResp host = hostMap.computeIfAbsent(x.getHostId(), id -> {
+                HostResp h = new HostResp();
+                h.setId(x.getHostId());
+                h.setName(x.getHostName());
+                h.setServers(new ArrayList<>());
+                env.getHosts().add(h);
+                return h;
+            });
+            // server
+            if (Objects.nonNull(x.getServerId())) {
+                ServerResp server = new ServerResp();
+                server.setId(x.getServerId());
+                server.setName(x.getServerName());
+                host.getServers().add(server);
             }
-            ret.add(e);
         }
+        List<ListServerResp> ret = envMap.values().stream().toList();
         return Result.success(ret);
     }
 
@@ -180,7 +184,7 @@ public class EnvController {
     public Result<Void> updateZkDataSource(@PathVariable Long envId, @RequestBody UpdateZkReq req) {
         Env env = this.envMapper.selectById(envId);
         Assert.that(Objects.nonNull(env), "环境不存在");
-        if(Objects.equals(env.getZkId(), req.getZkId())) {
+        if (Objects.equals(env.getZkId(), req.getZkId())) {
             return Result.success(null);
         }
         this.envMapper.updateById(new Env() {{
@@ -189,6 +193,7 @@ public class EnvController {
         }});
         // 绑定之后更新zk
         this.EnvDatasourceService.reloadEnvZkClient(env.getId());
+        // todo 重新注册元数据到zk
         return Result.success(null);
     }
 }

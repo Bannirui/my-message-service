@@ -38,4 +38,12 @@ public enum HostServerType {
         }
         return by_code.get(code);
     }
+
+    private static final int mqMask = KAFKA.getCode() | ROCKETMQ.getCode();
+    public static boolean isMQ(Integer code) {
+        if(Objects.isNull(code)) {
+            return false;
+        }
+        return (code & mqMask) != 0;
+    }
 }

@@ -20,5 +20,4 @@ public class ClusterMetadata {
      * {@link HostServerType}
      */
     private Integer brokerType;
-    private String serverIps;
 }

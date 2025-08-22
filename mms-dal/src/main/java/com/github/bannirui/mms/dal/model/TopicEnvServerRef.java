@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class TopicEnvServerRef {
     /**
-     * @see TopicEnvServer#id
+     * @see TopicRef#id
      */
     private Long tesId;
 

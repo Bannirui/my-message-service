@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName(value = "topic_env_server")
-public class TopicEnvServer {
+@TableName(value = "topic_ref")
+public class TopicRef {
     @TableId(type = IdType.AUTO)
     private Long id;
     /**

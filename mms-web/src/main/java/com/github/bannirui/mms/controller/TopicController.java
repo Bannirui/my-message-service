@@ -1,6 +1,9 @@
 package com.github.bannirui.mms.controller;
 
-import com.github.bannirui.mms.dto.topic.TopicRefDTO;
+import com.github.bannirui.mms.dal.mapper.TopicMapper;
+import com.github.bannirui.mms.dal.model.TopicEnvHostServerExt;
+import com.github.bannirui.mms.dto.topic.EnvExtDTO;
+import com.github.bannirui.mms.dto.topic.TopicExtDTO;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
@@ -12,9 +15,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "/api/topic")
@@ -22,6 +28,8 @@ public class TopicController {
 
     @Autowired
     TopicService topicService;
+    @Autowired
+    private TopicMapper topicMapper;
 
     /**
      * 申请topic
@@ -72,9 +80,36 @@ public class TopicController {
     }
 
     @GetMapping(value = "/querypage")
-    public PageResult<TopicRefDTO> queryTopicsPage(TopicPageReq req) {
+    public PageResult<TopicExtDTO> queryTopicsPage(TopicPageReq req) {
         AtomicReference<Long> cnt = new AtomicReference<>((long) 0);
-        List<TopicRefDTO> ls = topicService.queryTopicsPage(req, x -> cnt.set(x));
-        return PageResult.success(cnt.get(), ls);
+        List<TopicEnvHostServerExt> topics = topicService.queryTopicsPage(req, cnt::set);
+        List<TopicExtDTO> ret = new ArrayList<>(topics.size());
+        if (CollectionUtils.isEmpty(topics)) {
+            return PageResult.success(cnt.get(), ret);
+        }
+        Map<Long, List<TopicEnvHostServerExt>> topicMap = topics.stream().collect(Collectors.groupingBy(TopicEnvHostServerExt::getTopicId));
+        topicMap.forEach((k, v) -> {
+            TopicEnvHostServerExt topic = v.get(0);
+            List<EnvExtDTO> envs = new ArrayList<>();
+            v.forEach(x -> {
+                envs.add(new EnvExtDTO() {{
+                    setEnvId(x.getEnvId());
+                    setEnvName(x.getEnvName());
+                }});
+            });
+            ret.add(new TopicExtDTO() {{
+                setTopicId(topic.getTopicId());
+                setTopicName(topic.getTopicName());
+                setTopicType(topic.getTopicType());
+                setTopicStatus(topic.getTopicStatus());
+                setTopicTps(topic.getTopicTps());
+                setTopicMsgSz(topic.getTopicMsgSz());
+                setTopicPartitions(topic.getTopicPartitions());
+                setTopicReplication(topic.getTopicReplication());
+                setTopicRemark(topic.getTopicRemark());
+                setEnvs(envs);
+            }});
+        });
+        return PageResult.success(cnt.get(), ret);
     }
 }

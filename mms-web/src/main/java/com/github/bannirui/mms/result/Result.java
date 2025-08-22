@@ -30,6 +30,9 @@ public class Result<T> implements Serializable {
         this.code = statusCode;
     }
 
+    public static <T> Result<T> error(String message) {
+        return new Result<>(message, null, null);
+    }
     public static <T> Result<T> error(Integer statusCode, String message) {
         return new Result<>(message, null, statusCode);
     }

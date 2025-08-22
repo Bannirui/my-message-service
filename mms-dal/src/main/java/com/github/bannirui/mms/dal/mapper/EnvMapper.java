@@ -13,4 +13,5 @@ public interface EnvMapper extends BaseMapper<Env> {
     List<EnvHostServerExt> selectByEnvIds(@Param("envIds") List<Long> envIds);
     EnvHostServerExt selectByEnvId(@Param("envId") Long envId);
     List<EnvHostServerExt> selectNotDel();
+    List<EnvHostServerExt> selectEnvExtEnable();
 }

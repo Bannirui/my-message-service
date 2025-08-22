@@ -3,15 +3,15 @@ package com.github.bannirui.mms.service.topic;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.common.ServerStatus;
 import com.github.bannirui.mms.common.TopicStatus;
 import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
-import com.github.bannirui.mms.dal.mapper.TopicEnvServerMapper;
+import com.github.bannirui.mms.dal.mapper.TopicRefMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
 import com.github.bannirui.mms.dal.model.*;
 import com.github.bannirui.mms.dto.topic.MmsTopicConfigInfo;
-import com.github.bannirui.mms.dto.topic.TopicRefDTO;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
@@ -42,7 +42,7 @@ public class TopicService {
     @Autowired
     private ServerMapper serverMapper;
     @Autowired
-    private TopicEnvServerMapper topicEnvServerMapper;
+    private TopicRefMapper topicRefMapper;
 
     @Autowired
     private MessageAdminManagerAdapt messageAdminManagerAdapt;
@@ -80,12 +80,12 @@ public class TopicService {
      *
      * @param envId {@link com.github.bannirui.mms.dal.model.Env#id}
      */
-    private TopicEnvServer installTopicEnvRef(String operator, Topic topic, Long clusterServerId, Long envId) {
-        TopicEnvServer tes = new TopicEnvServer();
+    private TopicRef installTopicEnvRef(String operator, Topic topic, Long clusterServerId, Long envId) {
+        TopicRef tes = new TopicRef();
         tes.setTopicId(topic.getId());
         tes.setServerId(clusterServerId);
         tes.setEnvId(envId);
-        this.topicEnvServerMapper.insert(tes);
+        this.topicRefMapper.insert(tes);
         return tes;
     }
 
@@ -111,9 +111,10 @@ public class TopicService {
         // 每个环境分配的集群
         Map<Long, Server> admitServerGroupById = admitServers.stream().collect(Collectors.toMap(Server::getId, x -> x));
         // 当前topic的配置信息 key=envId 可能当前环境下已经分配好了一个集群 现在需要更新换成其他集群
-        Map<Long, TopicEnvServerRef> curTopicInfoGroup8Env = this.topicEnvServerMapper.getByTopicId(topic.getId())
+        Map<Long, TopicRef> curTopicInfoGroup8Env = this.topicRefMapper.selectList(new LambdaQueryWrapper<>(TopicRef.class).eq(TopicRef::getTopicId, topic.getId()))
                 .stream()
-                .collect(Collectors.toMap(TopicEnvServerRef::getEnvId, x -> x));
+                .collect(Collectors.toMap(TopicRef::getEnvId, x -> x));
+        // 分配分区数和副本数
         this.topicMapper.updateById(new Topic() {{
             setId(topicId);
             setPartitions(req.getPartitions());
@@ -136,10 +137,10 @@ public class TopicService {
                 if (!initTopicResource(envId, topic, server, curServerId, req.getPartitions())) {
                     continue;
                 }
-                // 更新当前环境下挂着的集群
-                this.topicEnvServerMapper.updateById(
-                        new TopicEnvServer() {{
-                            setId(curTopicInfoGroup8Env.get(envId).getTesId());
+                // 更新当前环境的mq服务
+                this.topicRefMapper.updateById(
+                        new TopicRef() {{
+                            setId(curTopicInfoGroup8Env.get(envId).getId());
                             setServerId(serverId);
                         }});
             } catch (Exception e) {
@@ -153,7 +154,7 @@ public class TopicService {
         this.topicMapper.updateById(
                 new Topic() {{
                     setId(topicId);
-                    setStatus(TopicStatus.CREATE_APPROVED.getCode());
+                    setStatus(ResourceStatus.CREATE_APPROVED.getCode());
                 }}
         );
         return initFailEnv;
@@ -179,7 +180,7 @@ public class TopicService {
         String topicName = topic.getName();
         MmsTopicConfigInfo topicConfigInfo = this.buildTopicConfigInfo(topic, server);
         // 给主题首次分配集群or给主题换集群
-        if (Objects.equals(TopicStatus.CREATE_NEW.getCode(), topic.getStatus())
+        if (Objects.equals(ResourceStatus.CREATE_NEW.getCode(), topic.getStatus())
                 || !Objects.equals(server.getId(), curServerId)) {
             this.createTopic(topicConfigInfo);
             this.zkRegister.registerTopic2Zk(clusterName, topicName, server.getType());
@@ -263,8 +264,8 @@ public class TopicService {
         }
     }
 
-    public List<TopicRefDTO> queryTopicsPage(TopicPageReq req, Consumer<Long> cnt) {
-        // 所有topic
+    public List<TopicEnvHostServerExt> queryTopicsPage(TopicPageReq req, Consumer<Long> cnt) {
+        // 所有topic的id
         Page<Topic> topics = this.topicMapper.selectPage(new Page<>(req.getPage(), req.getSize()), new LambdaQueryWrapper<>(Topic.class)
                 .select(Topic::getId)
                 .ne(Topic::getStatus, TopicStatus.DELETED.getCode())
@@ -274,37 +275,11 @@ public class TopicService {
         if (Objects.nonNull(cnt)) {
             cnt.accept(topics.getTotal());
         }
-        List<Long> topicIds = topics.getRecords().stream().map(Topic::getId).toList();
+        Set<Long> topicIds = topics.getRecords().stream().map(Topic::getId).collect(Collectors.toSet());
         if (CollectionUtils.isEmpty(topicIds)) {
             return Collections.emptyList();
         }
-        List<TopicEnvServerRef> topicRefs = this.topicEnvServerMapper.getByTopicIds(topicIds);
-        Map<Long, List<TopicEnvServerRef>> groupByTopic = topicRefs.stream().collect(Collectors.groupingBy(TopicEnvServerRef::getTopicId));
-        List<TopicRefDTO> ret = new ArrayList<>();
-        groupByTopic.forEach((topicId, topicEnvServerRefs) -> {
-            TopicEnvServerRef topic = topicEnvServerRefs.get(0);
-            ret.add(new TopicRefDTO() {{
-                setTopic(new Topic() {{
-                    setId(topic.getTopicId());
-                    setName(topic.getTopicName());
-                    setStatus(topic.getTopicStatus());
-                    setUserId(topic.getUserId());
-                    setAppId(topic.getAppId());
-                    setTps(topic.getTps());
-                    setMsgSz(topic.getMsgSz());
-                    setPartitions(topic.getPartitions());
-                    setRemark(topic.getRemark());
-                }});
-                List<Env> envs = new ArrayList<>();
-                topicEnvServerRefs.forEach(env -> {
-                    envs.add(new Env() {{
-                        setId(env.getEnvId());
-                        setName(env.getEnvName());
-                    }});
-                });
-                setEnvs(envs);
-            }});
-        });
-        return ret;
+        // topic的详情
+        return this.topicMapper.selectTopicExtByTopicIds(new ArrayList<>(topicIds));
     }
 }

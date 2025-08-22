@@ -1,6 +1,8 @@
 package com.github.bannirui.mms.service.router;
 
+import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.metadata.TopicMetadata;
+import com.github.bannirui.mms.service.manager.MmsContextManager;
 import com.github.bannirui.mms.service.selector.ZkSelector;
 import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
@@ -27,5 +29,13 @@ public class ZkRouter {
 
     public void writeTopicInfo(TopicMetadata metadata) {
         this.currentZkClient().writeTopicMetadata(metadata);
+    }
+    public void writeClusterInfo(ClusterMetadata metadata) {
+        try {
+            this.currentZkClient().writeClusterMetadata(metadata);
+        } catch (Exception ex) {
+            logger.error("write env:{} zk cluster {} error", MmsContextManager.getEnv(), metadata.toString(), ex);
+            throw new RuntimeException(ex);
+        }
     }
 }

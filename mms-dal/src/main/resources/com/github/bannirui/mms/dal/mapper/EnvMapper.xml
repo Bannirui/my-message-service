@@ -49,4 +49,24 @@
         left join host on server.host_id=host.id
         where env.status != 0
     </select>
+    <select id="selectEnvExtEnable" resultType="com.github.bannirui.mms.dal.model.EnvHostServerExt">
+        select
+            env.id as envId,
+            env.name as envName,
+            env.status as envStatus,
+            env.sort_id as envSortId,
+            host.id as hostId,
+            host.name as hostName,
+            host.host as hostHost,
+            host.status as hostStatus,
+            server.id as serverId,
+            server.name as serverName,
+            server.type as serverType,
+            server.port as serverPort,
+            server.status as serverStatus
+        from env
+                 left join host on env.id=host.env_id
+                 left join server on host.id=server.host_id
+        where env.status = 2
+    </select>
 </mapper>

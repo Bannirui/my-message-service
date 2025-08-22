@@ -42,11 +42,11 @@ CREATE TABLE `topic`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='主题表';
 
-CREATE TABLE `topic_env_server`
+CREATE TABLE `topic_ref`
 (
     `id`        BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `topic_id`  bigint not null default -1 comment 'topic',
-    `server_id` bigint NOT NULL DEFAULT -1 COMMENT '集群',
-    `env_id`    bigint not null default -1 comment '环境标识'
+    `env_id`    bigint not null default -1 comment '环境标识',
+    `server_id` bigint NOT NULL DEFAULT -1 COMMENT 'mq服务'
 ) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='topic-集群-环境关联';
+  DEFAULT CHARSET = utf8mb4 COMMENT ='topic-环境-mq服务关联';
