@@ -13,12 +13,26 @@
         host.host as zkHost
         from env
         left join server on env.zk_id=server.id
-        left join host on server.host_id=server.id
-        where env.id
-        where topic.id in
+        left join host on host.id=server.host_id
+        where env.id in
         <foreach collection="envIds" item="envId" open="(" separator="," close=")">
             #{envId}
         </foreach>
+    </select>
+    <select id="selectByEnvId" resultType="com.github.bannirui.mms.dal.model.EnvHostServerExt">
+        select
+        env.id as envId,
+        env.name as envName,
+        env.status as envStatus,
+        env.sort_id as envSortId,
+        env.zk_id as zkId,
+        server.name as zkName,
+        server.port as zkPort,
+        host.host as zkHost
+        from env
+        left join server on env.zk_id=server.id
+        left join host on host.id=server.host_id
+        where env.id = #{envId}
     </select>
     <select id="selectNotDel" resultType="com.github.bannirui.mms.dal.model.EnvHostServerExt">
         select

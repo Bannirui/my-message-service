@@ -34,6 +34,7 @@ public class ServerController {
 
     /**
      * 新增
+     * @param hostId 服务在哪个机器上
      * @return 数据库id
      */
     @PostMapping(value = "/add/{hostId}")

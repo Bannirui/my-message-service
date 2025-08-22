@@ -18,6 +18,7 @@ import com.github.bannirui.mms.resp.env.ListServerResp;
 import com.github.bannirui.mms.resp.host.HostResp;
 import com.github.bannirui.mms.resp.server.ServerResp;
 import com.github.bannirui.mms.result.Result;
+import com.github.bannirui.mms.service.env.EnvDatasourceService;
 import com.github.bannirui.mms.util.Assert;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,8 @@ public class EnvController {
     private HostMapper hostMapper;
     @Autowired
     private ServerMapper serverMapper;
+    @Autowired
+    private EnvDatasourceService EnvDatasourceService;
 
     /**
      * 添加环境
@@ -177,10 +180,15 @@ public class EnvController {
     public Result<Void> updateZkDataSource(@PathVariable Long envId, @RequestBody UpdateZkReq req) {
         Env env = this.envMapper.selectById(envId);
         Assert.that(Objects.nonNull(env), "环境不存在");
+        if(Objects.equals(env.getZkId(), req.getZkId())) {
+            return Result.success(null);
+        }
         this.envMapper.updateById(new Env() {{
             setId(envId);
             setZkId(req.getZkId());
         }});
+        // 绑定之后更新zk
+        this.EnvDatasourceService.reloadEnvZkClient(env.getId());
         return Result.success(null);
     }
 }
