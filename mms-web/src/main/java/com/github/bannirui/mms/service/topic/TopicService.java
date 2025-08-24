@@ -52,10 +52,10 @@ public class TopicService {
     /**
      * 申请topic
      *
-     * @return 新增的topic数量
+     * @return 新增的topic的id
      */
     @Transactional(rollbackFor = Exception.class)
-    public int addTopic(ApplyTopicReq req, String operator) {
+    public long addTopic(ApplyTopicReq req, String operator) {
         //  topic唯一
         boolean isUnique = this.uniqueTopicCheck(req.getName());
         Assert.that(isUnique, "topic名称重复");
@@ -69,10 +69,10 @@ public class TopicService {
         topic.setRemark(req.getRemark());
         // 申请
         topic.setStatus(TopicStatus.CREATE_NEW.getCode());
-        int count = topicMapper.insert(topic);
+        topicMapper.insert(topic);
         // 集群是由管理员审批时候分配的
         req.getEnvs().forEach(env -> this.installTopicEnvRef(operator, topic, null, env.getEnvId()));
-        return count;
+        return topic.getId();
     }
 
     /**
@@ -280,6 +280,6 @@ public class TopicService {
             return Collections.emptyList();
         }
         // topic的详情
-        return this.topicMapper.selectTopicExtByTopicIds(new ArrayList<>(topicIds));
+        return this.topicMapper.topicExtEnvByTopicIds(new ArrayList<>(topicIds));
     }
 }

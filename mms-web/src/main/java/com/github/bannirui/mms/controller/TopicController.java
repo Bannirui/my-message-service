@@ -33,9 +33,10 @@ public class TopicController {
 
     /**
      * 申请topic
+     * @return topic的id
      */
     @PostMapping(path = "/add")
-    public Result<Integer> addTopic(@RequestBody ApplyTopicReq req) {
+    public Result<Long> addTopic(@RequestBody ApplyTopicReq req) {
         if (Objects.isNull(req.getUserId())) {
             return Result.error(401, "申请人必填");
         }

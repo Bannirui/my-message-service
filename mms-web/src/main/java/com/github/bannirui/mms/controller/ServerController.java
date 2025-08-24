@@ -6,20 +6,26 @@ import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.HostMapper;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.model.EnvHostServerExt;
-import com.github.bannirui.mms.dal.model.Host;
 import com.github.bannirui.mms.dal.model.Server;
 import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.req.server.AddServerReq;
-import com.github.bannirui.mms.resp.server.GetServerByTypeResp;
+import com.github.bannirui.mms.resp.server.ServerByTypeResp;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.router.ZkRouter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -46,7 +52,8 @@ public class ServerController {
         if (Objects.isNull(hostExt)) {
             return Result.error("主机不存在");
         }
-        boolean serverExists = this.serverMapper.exists(new LambdaQueryWrapper<>(Server.class).eq(Server::getHostId, hostId).eq(Server::getPort, req.getPort()));
+        boolean serverExists =
+            this.serverMapper.exists(new LambdaQueryWrapper<>(Server.class).eq(Server::getHostId, hostId).eq(Server::getPort, req.getPort()));
         if (serverExists) {
             return Result.success(null);
         }
@@ -75,25 +82,17 @@ public class ServerController {
     }
 
     @GetMapping(value = "/{serverType}")
-    public Result<List<GetServerByTypeResp>> getServer8Type(@PathVariable Integer serverType) {
-        List<Server> servers = this.serverMapper.selectList(new LambdaQueryWrapper<Server>()
-                .eq(Server::getStatus, ResourceStatus.ENABLE.getCode())
-                .eq(Server::getType, serverType));
-        List<GetServerByTypeResp> ret = new ArrayList<>();
+    public Result<List<ServerByTypeResp>> getServer8Type(@PathVariable Integer serverType) {
+        List<EnvHostServerExt> servers = this.serverMapper.serverExtByServerType(serverType);
+        List<ServerByTypeResp> ret = new ArrayList<>();
         if (CollectionUtils.isEmpty(servers)) {
             return Result.success(ret);
         }
-        Set<Long> hostIds = servers.stream().map(Server::getHostId).collect(Collectors.toSet());
-        Map<Long, Host> hostGroup8Id = this.hostMapper.selectBatchIds(hostIds).stream().collect(Collectors.toMap(Host::getId, x -> x));
-        for (Server server : servers) {
-            Host host = hostGroup8Id.get(server.getHostId());
-            ret.add(new GetServerByTypeResp() {{
-                setServerId(server.getId());
-                setServerName(server.getName());
-                setHost(host.getHost());
-                setPort(server.getPort());
-            }});
-        }
+        // 环境分组
+        Map<Long, List<EnvHostServerExt>> map = servers.stream().collect(Collectors.groupingBy(EnvHostServerExt::getEnvId));
+        map.forEach((envId, serverList) -> {
+            ret.add(new ServerByTypeResp(envId, serverList));
+        });
         return Result.success(ret);
     }
 }

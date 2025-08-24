@@ -18,12 +18,22 @@ import com.github.bannirui.mms.resp.server.ServerResp;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.env.EnvDatasourceService;
 import com.github.bannirui.mms.util.Assert;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path = "api/env")
@@ -153,10 +163,12 @@ public class EnvController {
                 e.setHosts(new ArrayList<>());
                 return e;
             });
-            if (Objects.isNull(x.getHostId())) continue;
+            if (Objects.isNull(x.getHostId())) {
+                continue;
+            }
             // host
             Map<Long, HostResp> hostMap = env.getHosts().stream()
-                    .collect(Collectors.toMap(HostResp::getId, h -> h, (a, b) -> a));
+                .collect(Collectors.toMap(HostResp::getId, h -> h, (a, b) -> a));
             HostResp host = hostMap.computeIfAbsent(x.getHostId(), id -> {
                 HostResp h = new HostResp();
                 h.setId(x.getHostId());
@@ -187,6 +199,7 @@ public class EnvController {
         if (Objects.equals(env.getZkId(), req.getZkId())) {
             return Result.success(null);
         }
+        Assert.that(Objects.nonNull(req.getZkId()), "zk必填");
         this.envMapper.updateById(new Env() {{
             setId(envId);
             setZkId(req.getZkId());
