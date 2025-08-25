@@ -42,11 +42,7 @@ public class EnvController {
     @Autowired
     private EnvMapper envMapper;
     @Autowired
-    private HostMapper hostMapper;
-    @Autowired
-    private ServerMapper serverMapper;
-    @Autowired
-    private EnvDatasourceService EnvDatasourceService;
+    private EnvDatasourceService envDatasourceService;
 
     /**
      * 添加环境
@@ -194,18 +190,18 @@ public class EnvController {
      */
     @PutMapping(value = "/updateDataSource/{envId}")
     public Result<Void> updateZkDataSource(@PathVariable Long envId, @RequestBody UpdateZkReq req) {
+        Assert.that(Objects.nonNull(req.getZkId()), "zk必填");
         Env env = this.envMapper.selectById(envId);
         Assert.that(Objects.nonNull(env), "环境不存在");
         if (Objects.equals(env.getZkId(), req.getZkId())) {
             return Result.success(null);
         }
-        Assert.that(Objects.nonNull(req.getZkId()), "zk必填");
         this.envMapper.updateById(new Env() {{
             setId(envId);
             setZkId(req.getZkId());
         }});
         // 绑定之后更新zk
-        this.EnvDatasourceService.reloadEnvZkClient(env.getId());
+        this.envDatasourceService.reloadEnvZkClient(env.getId());
         // todo 重新注册元数据到zk
         return Result.success(null);
     }

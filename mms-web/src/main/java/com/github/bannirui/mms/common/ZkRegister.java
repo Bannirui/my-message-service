@@ -18,6 +18,17 @@ public class ZkRegister {
     private ZkRouter zkRouter;
 
     /**
+     * mq服务信息写到zk
+     * @param url 连接信息ip:port 集群用,隔开ip1:port1,ip2:port2
+     */
+    public void registerCluster2Zk(String clusterName, String url, Integer brokerType) {
+        ClusterMetadata metadata = new ClusterMetadata();
+        metadata.setClusterName(clusterName);
+        metadata.setBootAddr(url);
+        metadata.setBrokerType(brokerType);
+        this.zkRouter.writeClusterInfo(metadata);
+    }
+    /**
      * @param brokerType {@link HostServerType}
      */
     public void registerTopic2Zk(String clusterName, String topicName, Integer brokerType) {
@@ -29,5 +40,12 @@ public class ZkRegister {
         metadata.setName(topicName);
         metadata.setType(MmsType.TOPIC.getName());
         this.zkRouter.writeTopicInfo(metadata);
+    }
+
+    /**
+     * 探测zk连接是否还存活
+     */
+    public boolean alive() {
+        return this.zkRouter.currentZkClient().getState().isAlive();
     }
 }

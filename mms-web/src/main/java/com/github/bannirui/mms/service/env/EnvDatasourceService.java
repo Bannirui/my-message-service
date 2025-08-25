@@ -29,33 +29,44 @@ public class EnvDatasourceService {
 
     @PostConstruct
     public void init() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>().eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>()
+                .select(Env::getId)
+                .eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
         if (CollectionUtils.isEmpty(envs)) {
             logger.info("No enabled envs found");
         }
         logger.info("Found {} enabled envs", envs.size());
         for (Env env : envs) {
-            this.reloadEnvZkClient(env.getId());
+            if (!this.reloadEnvZkClient(env.getId())) {
+                // zk连接没初始化成功 抹掉环境的zk 后置化到mms-web使用的时候校验
+                logger.info("zk连接加载失败 抹掉环境{}的zk信息", env.getId());
+                this.envMapper.updateById(new Env() {{
+                    setId(env.getId());
+                    setZkId(0L);
+                }});
+            }
         }
     }
 
     /**
      * 每个环境都分配了zk作为元数据注册中心
+     * 初始化好连接放内存 后面直接根据环境标识操作zk{@link com.github.bannirui.mms.service.manager.MmsContextManager#setEnv}
+     *
      * @param envId 哪个环境
      */
-    public void reloadEnvZkClient(Long envId) {
+    public boolean reloadEnvZkClient(Long envId) {
         EnvHostServerExt env = this.envMapper.selectByEnvId(envId);
-        if(Objects.isNull(env)) {
-            return;
-        }
-        String host = env.getZkHost();
-        Integer port = env.getZkPort();
-        if(StringUtils.isEmpty(host) || Objects.isNull(port)) {
-            return;
+        String host = null;
+        Integer port = null;
+        if (Objects.isNull(env) || StringUtils.isEmpty(host = env.getZkHost())
+                || Objects.isNull(port = env.getZkPort()) || port <= 0) {
+            logger.warn("环境{}拿到的zk配置不合法{}", envId, env);
+            return false;
         }
         // todo zk集群
         String zkUrl = host + ":" + port;
         logger.info("reload zk {} for env {}", zkUrl, env.getEnvName());
         this.zkDatasourceManagerAdapt.reload(envId, zkUrl);
+        return true;
     }
 }

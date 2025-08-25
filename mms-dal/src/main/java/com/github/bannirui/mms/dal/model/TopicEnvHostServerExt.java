@@ -33,6 +33,7 @@ public class TopicEnvHostServerExt {
      * @see Env
      */
     private Long envId;
+    private Integer envSort;
     private String envName;
 
     /**

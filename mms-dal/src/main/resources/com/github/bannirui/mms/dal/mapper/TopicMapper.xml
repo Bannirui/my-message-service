@@ -16,6 +16,7 @@
         topic.user_id as userId,
         topic.app_id as appId,
         env.id as envId,
+        env.sort_id as envSort,
         env.name as envName
         from topic
         left join topic_ref on topic.id = topic_ref.topic_id

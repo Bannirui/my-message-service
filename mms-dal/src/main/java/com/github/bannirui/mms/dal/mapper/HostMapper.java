@@ -8,5 +8,5 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface HostMapper extends BaseMapper<Host> {
-    EnvHostServerExt getEnvExtByHostId(@Param("hostId") Long hostId);
+    EnvHostServerExt hostExtEnvAndZkByHostId(@Param("hostId") Long hostId);
 }

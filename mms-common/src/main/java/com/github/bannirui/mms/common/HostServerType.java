@@ -46,4 +46,10 @@ public enum HostServerType {
         }
         return (code & mqMask) != 0;
     }
+    public static boolean isZk(Integer code) {
+        if(Objects.isNull(code)) {
+            return false;
+        }
+        return (code & ZK.getCode()) != 0;
+    }
 }

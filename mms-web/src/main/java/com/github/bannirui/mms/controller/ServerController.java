@@ -3,6 +3,7 @@ package com.github.bannirui.mms.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.bannirui.mms.common.HostServerType;
 import com.github.bannirui.mms.common.ResourceStatus;
+import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.HostMapper;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.model.EnvHostServerExt;
@@ -11,21 +12,19 @@ import com.github.bannirui.mms.metadata.ClusterMetadata;
 import com.github.bannirui.mms.req.server.AddServerReq;
 import com.github.bannirui.mms.resp.server.ServerByTypeResp;
 import com.github.bannirui.mms.result.Result;
+import com.github.bannirui.mms.service.manager.MmsContextManager;
 import com.github.bannirui.mms.service.router.ZkRouter;
+import com.github.bannirui.mms.util.Assert;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -37,7 +36,7 @@ public class ServerController {
     @Autowired
     private ServerMapper serverMapper;
     @Autowired
-    private ZkRouter zkRouter;
+    private ZkRegister zkRegister;
 
     /**
      * 新增
@@ -48,35 +47,33 @@ public class ServerController {
      */
     @PostMapping(value = "/add/{hostId}")
     public Result<Long> add(@PathVariable Long hostId, @RequestBody AddServerReq req) {
-        EnvHostServerExt hostExt = this.hostMapper.getEnvExtByHostId(hostId);
-        if (Objects.isNull(hostExt)) {
-            return Result.error("主机不存在");
-        }
+        EnvHostServerExt hostExt = this.hostMapper.hostExtEnvAndZkByHostId(hostId);
+        Assert.that(Objects.nonNull(hostExt), "主机不存在");
         boolean serverExists =
-            this.serverMapper.exists(new LambdaQueryWrapper<>(Server.class).eq(Server::getHostId, hostId).eq(Server::getPort, req.getPort()));
+                this.serverMapper.exists(new LambdaQueryWrapper<>(Server.class).eq(Server::getHostId, hostId).eq(Server::getPort, req.getPort()));
         if (serverExists) {
             return Result.success(null);
         }
-        // 确保环境里面绑定了zk 服务服务添加完要写到zk
-        Long zk = hostExt.getZkId();
-        if (Objects.isNull(zk)) {
-            return Result.error("添加服务之前确保环境绑定了zk");
+        // 添加的是zk服务
+        Integer serverType = req.getType();
+        if (!HostServerType.isZk(serverType)) {
+            // 确保环境里面绑定了zk 服务服务添加完要写到zk
+            Long zk = hostExt.getZkId();
+            Assert.that(Objects.nonNull(zk) && zk > 0, "给主机添加服务之前确保已经给当前环境绑定了zk注册中心");
         }
         Server server = new Server();
         server.setHostId(hostId);
         server.setName(req.getName());
-        server.setType(req.getType());
+        server.setType(serverType);
         server.setPort(req.getPort());
         server.setStatus(ResourceStatus.ENABLE.getCode());
         this.serverMapper.insert(server);
         // 只把mq的服务元数据信息写到zk里面
-        if (HostServerType.isMQ(req.getType())) {
-            log.info("添加的服务是mq 元数据写到zk里面");
-            this.zkRouter.writeClusterInfo(new ClusterMetadata() {{
-                setClusterName(req.getName());
-                setBootAddr(hostExt.getHostHost() + ":" + req.getPort());
-                setBrokerType(req.getType());
-            }});
+        if (HostServerType.isMQ(serverType)) {
+            // 下面要拿zk注册中心 指定环境
+            MmsContextManager.setEnv(hostExt.getEnvId());
+            log.info("添加的服务是mq 元数据写到zk里面 当前环境是{}", hostExt.getEnvName());
+            this.zkRegister.registerCluster2Zk(req.getName(), hostExt.getHostHost()+":"+req.getPort(), serverType);
         }
         return Result.success(server.getId());
     }

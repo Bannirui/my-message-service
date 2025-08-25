@@ -8,9 +8,12 @@ import com.github.bannirui.mms.common.ServerStatus;
 import com.github.bannirui.mms.common.TopicStatus;
 import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
-import com.github.bannirui.mms.dal.mapper.TopicRefMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
-import com.github.bannirui.mms.dal.model.*;
+import com.github.bannirui.mms.dal.mapper.TopicRefMapper;
+import com.github.bannirui.mms.dal.model.Server;
+import com.github.bannirui.mms.dal.model.Topic;
+import com.github.bannirui.mms.dal.model.TopicEnvHostServerExt;
+import com.github.bannirui.mms.dal.model.TopicRef;
 import com.github.bannirui.mms.dto.topic.MmsTopicConfigInfo;
 import com.github.bannirui.mms.req.ApplyTopicReq;
 import com.github.bannirui.mms.req.ApproveTopicReq;
@@ -70,9 +73,10 @@ public class TopicService {
         // 申请
         topic.setStatus(TopicStatus.CREATE_NEW.getCode());
         topicMapper.insert(topic);
+        Long id = topic.getId();
         // 集群是由管理员审批时候分配的
         req.getEnvs().forEach(env -> this.installTopicEnvRef(operator, topic, null, env.getEnvId()));
-        return topic.getId();
+        return id;
     }
 
     /**
@@ -100,11 +104,12 @@ public class TopicService {
         // 要审批的topic
         Topic topic = this.topicMapper.selectById(topicId);
         Assert.that(Objects.nonNull(topic), "要审批的topic不存在");
-        // 准备分配的集群 集群是依附环境选择出来的
-        List<ApproveTopicReq.TopicEnvServerInfo> candidateServers = req.getEnvServers();
-        List<Long> candidateServerIds = candidateServers.stream().map(ApproveTopicReq.TopicEnvServerInfo::getServerId).toList();
+        // 需要分配的环境
+        List<ApproveTopicReq.TopicEnvServerInfo> selectEnvs = req.getEnvServers();
+        // 需要分配的服务
+        List<Long> selectServers = selectEnvs.stream().map(ApproveTopicReq.TopicEnvServerInfo::getServerId).toList();
         // 可以分配的集群
-        List<Server> admitServers = checkCandidateServer(candidateServerIds);
+        List<Server> admitServers = checkCandidateServer(selectServers);
         // 即使多个环境 每个topic也只能是一种mq的类型 kafka or rocket
         long clusterTypeCnt = admitServers.stream().map(Server::getType).distinct().count();
         Assert.that(Objects.equals(clusterTypeCnt, 1L), "topic在不同环境也得选择同一种集群类型");
@@ -114,6 +119,12 @@ public class TopicService {
         Map<Long, TopicRef> curTopicInfoGroup8Env = this.topicRefMapper.selectList(new LambdaQueryWrapper<>(TopicRef.class).eq(TopicRef::getTopicId, topic.getId()))
                 .stream()
                 .collect(Collectors.toMap(TopicRef::getEnvId, x -> x));
+        // 下面初始化topic资源要用到zk注册中心 前置检查zk连接状态
+        for (ApproveTopicReq.TopicEnvServerInfo selectEnv : selectEnvs) {
+            logger.info("检测zk注册中心 环境是{}", selectEnv.getEnvId());
+            MmsContextManager.setEnv(selectEnv.getEnvId());
+            Assert.that(zkRegister.alive(), "环境" + selectEnv.getEnvId() + "的zk注册中心不在线");
+        }
         // 分配分区数和副本数
         this.topicMapper.updateById(new Topic() {{
             setId(topicId);
@@ -122,7 +133,7 @@ public class TopicService {
         }});
         List<Long> initFailEnv = new ArrayList<>();
         // 初始化主题资源
-        for (ApproveTopicReq.TopicEnvServerInfo env : candidateServers) {
+        for (ApproveTopicReq.TopicEnvServerInfo env : selectEnvs) {
             // 申请的环境
             Long envId = env.getEnvId();
             // 为这个环境分配的集群
@@ -149,7 +160,7 @@ public class TopicService {
             }
         }
         // 全部都初始化失败了拦截 部分成功部分失败的不管了
-        Assert.that(initFailEnv.size() < candidateServers.size(), "主题审批失败");
+        Assert.that(initFailEnv.size() < selectEnvs.size(), "主题审批失败");
         // topic的状态推进
         this.topicMapper.updateById(
                 new Topic() {{

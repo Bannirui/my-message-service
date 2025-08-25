@@ -10,15 +10,13 @@ import com.github.bannirui.mms.req.topic.TopicPageReq;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.topic.TopicService;
+import com.github.bannirui.mms.util.Assert;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -33,31 +31,18 @@ public class TopicController {
 
     /**
      * 申请topic
+     *
      * @return topic的id
      */
     @PostMapping(path = "/add")
     public Result<Long> addTopic(@RequestBody ApplyTopicReq req) {
-        if (Objects.isNull(req.getUserId())) {
-            return Result.error(401, "申请人必填");
-        }
-        if (StringUtils.isEmpty(req.getName())) {
-            return Result.error(401, "topic name required");
-        }
-        if (Objects.isNull(req.getClusterType())) {
-            return Result.error(401, "集群类型必填");
-        }
-        if (Objects.isNull(req.getAppId())) {
-            return Result.error(401, "申请给哪个服务必填");
-        }
-        if (Objects.isNull(req.getTps())) {
-            return Result.error(401, "tps必填");
-        }
-        if (Objects.isNull(req.getMsgSz())) {
-            return Result.error(401, "消息体大小必填");
-        }
-        if (CollectionUtils.isEmpty(req.getEnvs())) {
-            return Result.error(401, "环境必填");
-        }
+        Assert.that(Objects.nonNull(req.getUserId()), "申请人必填");
+        Assert.that(StringUtils.isNotEmpty(req.getName()), "topic必填");
+        Assert.that(Objects.nonNull(req.getClusterType()), "MQ类型必填");
+        Assert.that(Objects.nonNull(req.getAppId()), "申请给哪个服务");
+        Assert.that(Objects.nonNull(req.getTps()), "tps必填");
+        Assert.that(Objects.nonNull(req.getMsgSz()), "消息体大小必填");
+        Assert.that(CollectionUtils.isNotEmpty(req.getEnvs()), "环境必填");
         return Result.success(this.topicService.addTopic(req, "TODO"));
     }
 
@@ -67,7 +52,7 @@ public class TopicController {
      * @return 审批topic初始化失败的env
      */
     @PutMapping(value = "/{topicId}/approve")
-    public Result<List<Long>> approveTopic(@RequestBody ApproveTopicReq req, @PathVariable Long topicId) {
+    public Result<List<Long>> approveTopic(@PathVariable Long topicId, @RequestBody ApproveTopicReq req) {
         if (Objects.isNull(topicId)) {
             return Result.error(401, "topic id必填");
         }
@@ -92,7 +77,7 @@ public class TopicController {
         topicMap.forEach((k, v) -> {
             TopicEnvHostServerExt topic = v.get(0);
             List<EnvExtDTO> envs = new ArrayList<>();
-            v.forEach(x -> {
+            v.stream().sorted(Comparator.comparing(TopicEnvHostServerExt::getEnvSort)).forEach(x -> {
                 envs.add(new EnvExtDTO() {{
                     setEnvId(x.getEnvId());
                     setEnvName(x.getEnvName());
