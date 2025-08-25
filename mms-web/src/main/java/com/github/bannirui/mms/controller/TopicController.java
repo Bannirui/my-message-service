@@ -53,15 +53,9 @@ public class TopicController {
      */
     @PutMapping(value = "/{topicId}/approve")
     public Result<List<Long>> approveTopic(@PathVariable Long topicId, @RequestBody ApproveTopicReq req) {
-        if (Objects.isNull(topicId)) {
-            return Result.error(401, "topic id必填");
-        }
-        if (Objects.isNull(req.getPartitions()) || req.getPartitions() <= 0) {
-            return Result.error(401, "partitions非法");
-        }
-        if (Objects.isNull(req.getReplication()) || req.getReplication() <= 0) {
-            return Result.error(401, "replication非法");
-        }
+        Assert.that(Objects.nonNull(topicId), "topic id必填");
+        Assert.that(Objects.nonNull(req.getPartitions()) && req.getPartitions() > 0, "partitions非法");
+        Assert.that(Objects.nonNull(req.getReplication()) && req.getReplication() > 0, "getReplication非法");
         return Result.success(topicService.approveTopic(topicId, req, ""));
     }
 
@@ -73,7 +67,13 @@ public class TopicController {
         if (CollectionUtils.isEmpty(topics)) {
             return PageResult.success(cnt.get(), ret);
         }
-        Map<Long, List<TopicEnvHostServerExt>> topicMap = topics.stream().collect(Collectors.groupingBy(TopicEnvHostServerExt::getTopicId));
+        // todo关联user和app信息
+        Map<Long, List<TopicEnvHostServerExt>> topicMap = topics.stream()
+                .peek(x->{
+                    x.setUserName("dingrui");
+                    x.setAppName("mss");
+                })
+                .collect(Collectors.groupingBy(TopicEnvHostServerExt::getTopicId));
         topicMap.forEach((k, v) -> {
             TopicEnvHostServerExt topic = v.get(0);
             List<EnvExtDTO> envs = new ArrayList<>();
@@ -94,6 +94,10 @@ public class TopicController {
                 setTopicReplication(topic.getTopicReplication());
                 setTopicRemark(topic.getTopicRemark());
                 setEnvs(envs);
+                setUserId(topic.getUserId());
+                setUserName(topic.getUserName());
+                setAppId(topic.getAppId());
+                setAppName(topic.getAppName());
             }});
         });
         return PageResult.success(cnt.get(), ret);
