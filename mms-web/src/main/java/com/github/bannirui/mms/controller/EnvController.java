@@ -86,7 +86,8 @@ public class EnvController {
      */
     @GetMapping(value = "/allEnableEnv")
     public Result<List<ListEnvResp>> allEnableEnv() {
-        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class).eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
+        List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<>(Env.class)
+                .in(Env::getStatus, ResourceStatus.ENABLE.getCode(), ResourceStatus.CREATE_APPROVED.getCode(), ResourceStatus.UPDATE_APPROVED));
         List<ListEnvResp> ret = new ArrayList<>();
         for (Env env : envs) {
             ret.add(new ListEnvResp(env.getId(), env.getName(), env.getSortId(), env.getStatus()));

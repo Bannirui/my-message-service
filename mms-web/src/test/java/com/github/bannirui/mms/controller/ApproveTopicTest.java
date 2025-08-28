@@ -1,8 +1,7 @@
 package com.github.bannirui.mms.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.bannirui.mms.req.ApproveTopicReq;
-import com.github.bannirui.mms.service.env.EnvDatasourceService;
+import com.github.bannirui.mms.req.topic.ApproveTopicReq;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

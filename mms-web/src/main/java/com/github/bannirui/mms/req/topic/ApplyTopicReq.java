@@ -1,4 +1,4 @@
-package com.github.bannirui.mms.req;
+package com.github.bannirui.mms.req.topic;
 
 import com.github.bannirui.mms.common.HostServerType;
 import lombok.Data;

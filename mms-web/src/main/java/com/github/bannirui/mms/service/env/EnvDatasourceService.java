@@ -31,7 +31,7 @@ public class EnvDatasourceService {
     public void init() {
         List<Env> envs = this.envMapper.selectList(new LambdaQueryWrapper<Env>()
                 .select(Env::getId)
-                .eq(Env::getStatus, ResourceStatus.ENABLE.getCode()));
+                .in(Env::getStatus, ResourceStatus.CREATE_APPROVED.getCode(), ResourceStatus.UPDATE_APPROVED.getCode(), ResourceStatus.ENABLE.getCode()));
         if (CollectionUtils.isEmpty(envs)) {
             logger.info("No enabled envs found");
         }

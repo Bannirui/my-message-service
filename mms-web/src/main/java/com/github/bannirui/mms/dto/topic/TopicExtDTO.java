@@ -29,5 +29,13 @@ public class TopicExtDTO {
     private String appName;
 
     private List<EnvExtDTO> envs;
+
+    public TopicExtDTO() {
+    }
+
+    public TopicExtDTO(Long topicId, String topicName) {
+        this.topicId = topicId;
+        this.topicName = topicName;
+    }
 }
 

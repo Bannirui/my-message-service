@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.bannirui.mms.dal.mapper.ConsumerMapper" >
+
+    <select id="selectExtTopicAndEnvs" resultType="com.github.bannirui.mms.dal.model.ConsumerExtTopicAndEnv">
+        select
+        consumer.id as consumerId,
+        consumer.name as consumerName,
+        consumer.user_id as consumerUserId,
+        consumer.app_id as consumerAppId,
+        consumer.status as consumerStatus,
+        consumer.remark as consumerRemark,
+        consumer.topic_id as topicId,
+        topic.name as topicName,
+        env.id as envId,
+        env.sort_id as envSort,
+        env.name as envName
+        from consumer
+        left join topic on topic.id = consumer.topic_id
+        left join topic_ref on topic_ref.topic_id = topic.id
+        left join env on env.id = topic_ref.env_id
+        where consumer.id in
+        <foreach collection="consumerIds" item="consumerId" open="(" separator="," close=")">
+            #{consumerId}
+        </foreach>
+    </select>
+</mapper>

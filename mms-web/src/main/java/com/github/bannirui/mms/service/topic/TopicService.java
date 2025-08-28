@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.bannirui.mms.common.ResourceStatus;
-import com.github.bannirui.mms.common.ServerStatus;
-import com.github.bannirui.mms.common.TopicStatus;
 import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ServerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
@@ -15,8 +13,8 @@ import com.github.bannirui.mms.dal.model.Topic;
 import com.github.bannirui.mms.dal.model.TopicEnvHostServerExt;
 import com.github.bannirui.mms.dal.model.TopicRef;
 import com.github.bannirui.mms.dto.topic.MmsTopicConfigInfo;
-import com.github.bannirui.mms.req.ApplyTopicReq;
-import com.github.bannirui.mms.req.ApproveTopicReq;
+import com.github.bannirui.mms.req.topic.ApplyTopicReq;
+import com.github.bannirui.mms.req.topic.ApproveTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
 import com.github.bannirui.mms.service.manager.MessageAdminManagerAdapt;
 import com.github.bannirui.mms.service.manager.MiddlewareProcess;
@@ -60,8 +58,7 @@ public class TopicService {
     @Transactional(rollbackFor = Exception.class)
     public long addTopic(ApplyTopicReq req, String operator) {
         //  topic唯一
-        boolean isUnique = this.uniqueTopicCheck(req.getName());
-        Assert.that(isUnique, "topic名称重复");
+        Assert.that(this.uniqueTopicCheck(req.getName()), "topic名称重复");
         Topic topic = new Topic();
         topic.setUserId(req.getUserId());
         topic.setName(req.getName());
@@ -71,7 +68,7 @@ public class TopicService {
         topic.setMsgSz(req.getMsgSz());
         topic.setRemark(req.getRemark());
         // 申请
-        topic.setStatus(TopicStatus.CREATE_NEW.getCode());
+        topic.setStatus(ResourceStatus.CREATE_NEW.getCode());
         topicMapper.insert(topic);
         Long id = topic.getId();
         // 集群是由管理员审批时候分配的
@@ -213,7 +210,7 @@ public class TopicService {
         // 审核集群的信息
         List<Server> servers = this.serverMapper.selectBatchIds(candidateServerIds)
                 .stream()
-                .filter(x -> Objects.equals(ServerStatus.ENABLE.getCode(), x.getStatus()))
+                .filter(x -> Objects.nonNull(x.getStatus()) && (x.getStatus() & ResourceStatus.ENABLE_MASK) != 0)
                 .toList();
         Assert.that(Objects.equals(servers.size(), candidateServerIds.size()), "无效的集群");
         return servers;
@@ -279,7 +276,7 @@ public class TopicService {
         // 所有topic的id
         Page<Topic> topics = this.topicMapper.selectPage(new Page<>(req.getPage(), req.getSize()), new LambdaQueryWrapper<>(Topic.class)
                 .select(Topic::getId)
-                .ne(Topic::getStatus, TopicStatus.DELETED.getCode())
+                .ne(Topic::getStatus, ResourceStatus.DELETE.getCode())
                 .eq(StringUtils.isNotEmpty(req.getTopicName()), Topic::getName, req.getTopicName())
                 .eq(Objects.nonNull(req.getUserId()), Topic::getUserId, req.getUserId())
         );

@@ -16,6 +16,8 @@ public enum ResourceStatus {
     UPDATE_APPROVED(1 << 5, "已审批"),
     ;
 
+    public static final int ENABLE_MASK = ENABLE.getCode() | CREATE_APPROVED.getCode() | UPDATE_APPROVED.getCode();
+
     private final Integer code;
     private final String desc;
 

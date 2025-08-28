@@ -1,11 +1,15 @@
 package com.github.bannirui.mms.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
+import com.github.bannirui.mms.dal.model.Topic;
 import com.github.bannirui.mms.dal.model.TopicEnvHostServerExt;
 import com.github.bannirui.mms.dto.topic.EnvExtDTO;
 import com.github.bannirui.mms.dto.topic.TopicExtDTO;
-import com.github.bannirui.mms.req.ApplyTopicReq;
-import com.github.bannirui.mms.req.ApproveTopicReq;
+import com.github.bannirui.mms.req.topic.ApplyTopicReq;
+import com.github.bannirui.mms.req.topic.ApproveTopicReq;
+import com.github.bannirui.mms.req.topic.SearchTopicReq;
 import com.github.bannirui.mms.req.topic.TopicPageReq;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
@@ -69,7 +73,7 @@ public class TopicController {
         }
         // todo关联user和app信息
         Map<Long, List<TopicEnvHostServerExt>> topicMap = topics.stream()
-                .peek(x->{
+                .peek(x -> {
                     x.setUserName("dingrui");
                     x.setAppName("mss");
                 })
@@ -78,28 +82,48 @@ public class TopicController {
             TopicEnvHostServerExt topic = v.get(0);
             List<EnvExtDTO> envs = new ArrayList<>();
             v.stream().sorted(Comparator.comparing(TopicEnvHostServerExt::getEnvSort)).forEach(x -> {
-                envs.add(new EnvExtDTO() {{
-                    setEnvId(x.getEnvId());
-                    setEnvName(x.getEnvName());
-                }});
+                EnvExtDTO e = new EnvExtDTO();
+                e.setEnvId(x.getEnvId());
+                e.setEnvName(x.getEnvName());
+                envs.add(e);
             });
-            ret.add(new TopicExtDTO() {{
-                setTopicId(topic.getTopicId());
-                setTopicName(topic.getTopicName());
-                setTopicType(topic.getTopicType());
-                setTopicStatus(topic.getTopicStatus());
-                setTopicTps(topic.getTopicTps());
-                setTopicMsgSz(topic.getTopicMsgSz());
-                setTopicPartitions(topic.getTopicPartitions());
-                setTopicReplication(topic.getTopicReplication());
-                setTopicRemark(topic.getTopicRemark());
-                setEnvs(envs);
-                setUserId(topic.getUserId());
-                setUserName(topic.getUserName());
-                setAppId(topic.getAppId());
-                setAppName(topic.getAppName());
-            }});
+            TopicExtDTO e = new TopicExtDTO();
+            e.setTopicId(topic.getTopicId());
+            e.setTopicName(topic.getTopicName());
+            e.setTopicType(topic.getTopicType());
+            e.setTopicStatus(topic.getTopicStatus());
+            e.setTopicTps(topic.getTopicTps());
+            e.setTopicMsgSz(topic.getTopicMsgSz());
+            e.setTopicPartitions(topic.getTopicPartitions());
+            e.setTopicReplication(topic.getTopicReplication());
+            e.setTopicRemark(topic.getTopicRemark());
+            e.setEnvs(envs);
+            e.setUserId(topic.getUserId());
+            e.setUserName(topic.getUserName());
+            e.setAppId(topic.getAppId());
+            e.setAppName(topic.getAppName());
+            ret.add(e);
         });
         return PageResult.success(cnt.get(), ret);
+    }
+
+    /**
+     * 模糊搜索topic
+     *
+     * @param req 搜索条件
+     */
+    @GetMapping(value = "/searchTopic")
+    public Result<List<TopicExtDTO>> searchTopic(SearchTopicReq req) {
+        List<TopicExtDTO> ret = new ArrayList<>();
+        String topicName = null;
+        if (StringUtils.isEmpty(topicName = req.getTopicName())) {
+            return Result.success(ret);
+        }
+        List<Topic> topics = this.topicMapper.selectList(new LambdaQueryWrapper<>(Topic.class)
+                .like(Topic::getName, topicName)
+                .in(Topic::getStatus, ResourceStatus.CREATE_APPROVED.getCode(), ResourceStatus.UPDATE_APPROVED.getCode(), ResourceStatus.ENABLE.getCode())
+        );
+        topics.forEach(x -> ret.add(new TopicExtDTO(x.getId(), x.getName())));
+        return Result.success(ret);
     }
 }

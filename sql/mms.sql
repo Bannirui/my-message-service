@@ -48,5 +48,15 @@ CREATE TABLE `topic_ref`
     `topic_id`  bigint not null default -1 comment 'topic',
     `env_id`    bigint not null default -1 comment '环境标识',
     `server_id` bigint NOT NULL DEFAULT -1 COMMENT 'mq服务'
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='topic-环境-mq服务关联';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='topic-环境-mq服务关联';
+
+CREATE TABLE `consumer`
+(
+    `id`       BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `user_id`  BIGINT        not null default 0 COMMENT '申请人',
+    `name`     VARCHAR(128)  NOT NULL COMMENT '消费组名',
+    `topic_id` BIGINT        not null default 0 COMMENT '订阅哪个topic',
+    `app_id`   BIGINT        not null default 0 COMMENT '给哪个应用服务用的',
+    `status`   INT           NOT NULL DEFAULT -1 COMMENT '状态',
+    `remark`   VARCHAR(1024) NOT NULL COMMENT '申请时的备注信息'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='消费组';
