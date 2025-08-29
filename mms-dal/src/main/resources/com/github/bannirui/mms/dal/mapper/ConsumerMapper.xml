@@ -11,6 +11,8 @@
         consumer.status as consumerStatus,
         consumer.remark as consumerRemark,
         consumer.topic_id as topicId,
+        consumer.consumer_broadcast as consumerBroadcast,
+        consumer.consumer_from_min as consumerFromMin,
         topic.name as topicName,
         env.id as envId,
         env.sort_id as envSort,

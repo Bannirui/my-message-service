@@ -32,4 +32,17 @@ public class Consumer {
      * 申请时的备注信息
      */
     private String remark;
+
+    /**
+     * 广播消费
+     * 只有rocketmq有这个概念 kafka没有这个概念
+     * 申请消费组时告诉broker是不是要支持广播消费
+     */
+    private Integer consumerBroadcast;
+    /**
+     * 最早消费
+     * 只有rocketmq有这个概念 kafka没有这个概念
+     * 申请消费组时告诉broker是不是要支持最早消费
+     */
+    private Integer consumerFromMin;
 }

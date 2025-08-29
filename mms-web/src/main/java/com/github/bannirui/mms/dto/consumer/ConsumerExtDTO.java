@@ -12,6 +12,8 @@ public class ConsumerExtDTO {
     private String consumerName;
     private Long consumerUserId;
     private String consumerUserName;
+    private boolean consumerBroadcast;
+    private boolean consumerFromMin;
     /**
      * topic给哪个应用的
      */

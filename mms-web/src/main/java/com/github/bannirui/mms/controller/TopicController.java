@@ -123,7 +123,7 @@ public class TopicController {
                 .like(Topic::getName, topicName)
                 .in(Topic::getStatus, ResourceStatus.CREATE_APPROVED.getCode(), ResourceStatus.UPDATE_APPROVED.getCode(), ResourceStatus.ENABLE.getCode())
         );
-        topics.forEach(x -> ret.add(new TopicExtDTO(x.getId(), x.getName())));
+        topics.forEach(x -> ret.add(new TopicExtDTO(x.getId(), x.getName(), x.getClusterType())));
         return Result.success(ret);
     }
 }

@@ -60,6 +60,9 @@ public class ConsumerController {
         e.setAppId(req.getAppId());
         e.setRemark(req.getRemark());
         e.setStatus(ResourceStatus.CREATE_NEW.getCode());
+        e.setStatus(ResourceStatus.CREATE_NEW.getCode());
+        e.setConsumerBroadcast(req.isConsumerBroadcast() ? 1 : 0);
+        e.setConsumerFromMin(req.isConsumerFromMin() ? 1 : 0);
         this.consumerMapper.insert(e);
         ApplyConsumerResp ret = new ApplyConsumerResp();
         ret.setConsumerId(e.getId());
@@ -128,6 +131,8 @@ public class ConsumerController {
             e.setTopicId(consumer.getTopicId());
             e.setTopicName(consumer.getTopicName());
             e.setConsumerEnvs(envs);
+            e.setConsumerBroadcast(Objects.equals(1, consumer.getConsumerBroadcast()));
+            e.setConsumerFromMin(Objects.equals(1, consumer.getConsumerFromMin()));
             ret.add(e);
         });
         return PageResult.success(cnt.get(), ret);

@@ -37,5 +37,10 @@ public class TopicExtDTO {
         this.topicId = topicId;
         this.topicName = topicName;
     }
+    public TopicExtDTO(Long topicId, String topicName, Integer topicType) {
+        this.topicId = topicId;
+        this.topicName = topicName;
+        this.topicType = topicType;
+    }
 }
 

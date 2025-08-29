@@ -19,6 +19,8 @@ public class ConsumerExtTopicAndEnv {
     private String consumerAppName;
     private Integer consumerStatus;
     private String consumerRemark;
+    private Integer consumerBroadcast;
+    private Integer consumerFromMin;
 
     private Long topicId;
     private String topicName;
