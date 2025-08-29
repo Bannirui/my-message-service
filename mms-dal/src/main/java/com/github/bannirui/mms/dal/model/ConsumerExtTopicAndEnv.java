@@ -24,7 +24,7 @@ public class ConsumerExtTopicAndEnv {
 
     private Long topicId;
     private String topicName;
-
+    private Integer topicType;
 
     /**
      * @see Env

@@ -4,7 +4,7 @@ import com.github.bannirui.mms.common.HostServerType;
 import lombok.Data;
 
 /**
- * 存在注册中心的my message service集群信息
+ * 存在注册中心的mq集群信息
  */
 @Data
 public class ClusterMetadata {

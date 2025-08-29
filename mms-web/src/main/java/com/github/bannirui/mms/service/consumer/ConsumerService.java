@@ -51,6 +51,6 @@ public class ConsumerService {
             return Collections.emptyList();
         }
         // consumer的详情
-        return this.consumerMapper.selectExtTopicAndEnvs(new ArrayList<>(consumerIds));
+        return this.consumerMapper.extTopicAndEnvsByConsumerIds(new ArrayList<>(consumerIds));
     }
 }

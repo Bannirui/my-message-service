@@ -24,6 +24,7 @@ public class ConsumerExtDTO {
 
     private Long topicId;
     private String topicName;
+    private Integer topicType;
 
     private List<EnvExtDTO> consumerEnvs;
 }

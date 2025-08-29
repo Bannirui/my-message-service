@@ -14,6 +14,8 @@ import com.github.bannirui.mms.resp.consumer.ApplyConsumerResp;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.consumer.ConsumerService;
+import com.github.bannirui.mms.service.manager.MmsContextManager;
+import com.github.bannirui.mms.service.router.ZkRouter;
 import com.github.bannirui.mms.util.Assert;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +36,8 @@ public class ConsumerController {
     private ConsumerMapper consumerMapper;
     @Autowired
     private TopicMapper topicMapper;
+    @Autowired
+    ZkRouter zkRouter;
 
     /**
      * 申请consumer
@@ -83,11 +87,16 @@ public class ConsumerController {
     @PutMapping(value = "/{consumerId}/approve")
     public Result<Void> approveConsumer(@PathVariable Long consumerId) {
         Assert.that(Objects.nonNull(consumerId), "consumer id必填");
-        Consumer consumer = this.consumerMapper.selectById(consumerId);
-        Assert.that(Objects.nonNull(consumer), "consumer不存在");
-        Integer status = consumer.getStatus();
+        List<ConsumerExtTopicAndEnv> consumers = this.consumerMapper.extTopicAndEnvsByConsumerId(consumerId);
+        Assert.that(CollectionUtils.isNotEmpty(consumers), "consumer不存在");
+        Integer status = consumers.get(0).getConsumerStatus();
         Assert.that(!Objects.equals(status, ResourceStatus.DELETE.getCode()), "consumer不存在");
         Assert.that((status & ResourceStatus.ENABLE_MASK) == 0, "consumer可用 不需要审批");
+        // 分环境注册
+        consumers.forEach(x -> {
+            MmsContextManager.setEnv(x.getEnvId());
+            // todo
+        });
         this.consumerMapper.updateById(new Consumer() {{
             setId(consumerId);
             setStatus(ResourceStatus.CREATE_APPROVED.getCode());
@@ -130,6 +139,7 @@ public class ConsumerController {
             e.setConsumerRemark(consumer.getConsumerRemark());
             e.setTopicId(consumer.getTopicId());
             e.setTopicName(consumer.getTopicName());
+            e.setTopicType(consumer.getTopicType());
             e.setConsumerEnvs(envs);
             e.setConsumerBroadcast(Objects.equals(1, consumer.getConsumerBroadcast()));
             e.setConsumerFromMin(Objects.equals(1, consumer.getConsumerFromMin()));
