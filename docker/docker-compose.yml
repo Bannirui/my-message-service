@@ -1,8 +1,7 @@
 name: mms
-version: "3.9"
 
 services:
-  # MySQL 数据库
+  # MySQL数据库
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -16,7 +15,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
-  # ZooKeeper 环境1（端口2181）
+  # ZooKeeper环境1 端口2181
   zookeeper1:
     image: zookeeper:3.8
     container_name: zookeeper1
@@ -27,7 +26,7 @@ services:
       ZOO_MY_ID: 1
       ZOO_CLIENT_PORT: 2181
 
-  # ZooKeeper 环境2（端口2182）
+  # ZooKeeper环境2 端口2182
   zookeeper2:
     image: zookeeper:3.8
     container_name: zookeeper2
@@ -64,10 +63,10 @@ services:
       - rmq_data:/home/rocketmq/store
     restart: always
 
-  # 后端 Spring Boot 服务
+  # 后端Spring Boot服务
   backend:
     build:
-      context: ./..
+      context: ..
       dockerfile: docker/backend/Dockerfile
     depends_on:
       - mysql
@@ -85,10 +84,10 @@ services:
       ZK2: zookeeper2:2182
       ROCKETMQ_NAMESRV: rmqnamesrv:9876
 
-  # 前端 Vue 项目 (nginx 托管 dist/)
+  # 前端Vue项目 nginx托管dist/
   frontend:
     build:
-      context: ./..
+      context: ..
       dockerfile: docker/frontend/Dockerfile
     container_name: frontend
     depends_on:
