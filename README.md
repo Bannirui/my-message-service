@@ -9,6 +9,8 @@ message service
 docker-compose up -d --build
 ```
 
+然后在浏览器访问localhost:80
+
 ### TODO
 
 - [ ] zk作环境元数据库 服务是单机版本 不支持集群模式
