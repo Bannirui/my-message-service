@@ -1,0 +1,102 @@
+name: mms
+version: "3.9"
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 19920308
+      MYSQL_DATABASE: mms
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # ZooKeeper 环境1（端口2181）
+  zookeeper1:
+    image: zookeeper:3.8
+    container_name: zookeeper1
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_CLIENT_PORT: 2181
+
+  # ZooKeeper 环境2（端口2182）
+  zookeeper2:
+    image: zookeeper:3.8
+    container_name: zookeeper2
+    restart: always
+    ports:
+      - "2182:2182"
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_CLIENT_PORT: 2182
+
+  # RocketMQ NameServer
+  rmqnamesrv:
+    image: apache/rocketmq:5.2.0
+    container_name: rmqnamesrv
+    ports:
+      - "9876:9876"
+    command: sh mqnamesrv
+    volumes:
+      - rmq_data:/home/rocketmq/store
+    restart: always
+
+  # RocketMQ Broker
+  rmqbroker:
+    image: apache/rocketmq:5.2.0
+    container_name: rmqbroker
+    depends_on:
+      - rmqnamesrv
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    command: sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/conf/broker.conf
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
+      - rmq_data:/home/rocketmq/store
+    restart: always
+
+  # 后端 Spring Boot 服务
+  backend:
+    build:
+      context: ./..
+      dockerfile: docker/backend/Dockerfile
+    depends_on:
+      - mysql
+      - zookeeper1
+      - zookeeper2
+      - rmqnamesrv
+      - rmqbroker
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mms?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 19920308
+      ZK1: zookeeper1:2181
+      ZK2: zookeeper2:2182
+      ROCKETMQ_NAMESRV: rmqnamesrv:9876
+
+  # 前端 Vue 项目 (nginx 托管 dist/)
+  frontend:
+    build:
+      context: ./..
+      dockerfile: docker/frontend/Dockerfile
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: always
+
+volumes:
+  mysql_data:
+  rmq_data:
