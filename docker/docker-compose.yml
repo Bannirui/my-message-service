@@ -5,21 +5,21 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mysql
-    restart: always
+    restart: on-failure:3
     environment:
       MYSQL_ROOT_PASSWORD: 19920308
       MYSQL_DATABASE: mms
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
 
   # ZooKeeper环境1 端口2181
   zookeeper1:
-    image: zookeeper:3.8
+    image: zookeeper:3.9
     container_name: zookeeper1
-    restart: always
+    restart: on-failure:3
     ports:
       - "2181:2181"
     environment:
@@ -28,9 +28,9 @@ services:
 
   # ZooKeeper环境2 端口2182
   zookeeper2:
-    image: zookeeper:3.8
+    image: zookeeper:3.9
     container_name: zookeeper2
-    restart: always
+    restart: on-failure:3
     ports:
       - "2182:2182"
     environment:
@@ -39,18 +39,18 @@ services:
 
   # RocketMQ NameServer
   rmqnamesrv:
-    image: apache/rocketmq:5.2.0
+    image: apache/rocketmq:5.3.1
     container_name: rmqnamesrv
     ports:
       - "9876:9876"
     command: sh mqnamesrv
     volumes:
       - rmq_data:/home/rocketmq/store
-    restart: always
+    restart: on-failure:3
 
   # RocketMQ Broker
   rmqbroker:
-    image: apache/rocketmq:5.2.0
+    image: apache/rocketmq:5.3.1
     container_name: rmqbroker
     depends_on:
       - rmqnamesrv
@@ -60,8 +60,8 @@ services:
     command: sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/conf/broker.conf
     volumes:
       - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
-      - rmq_data:/home/rocketmq/store
-    restart: always
+      - ./rocketmq/store:/home/rocketmq/store
+    restart: on-failure:3
 
   # 后端Spring Boot服务
   backend:
@@ -94,7 +94,7 @@ services:
       - backend
     ports:
       - "80:80"
-    restart: always
+    restart: on-failure:3
 
 volumes:
   mysql_data:

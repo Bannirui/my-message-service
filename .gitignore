@@ -26,3 +26,6 @@ replay_pid*
 **/target/
 **/.flattened-pom.xml
 **pom-xml-flattened
+
+docker/rocketmq/store
+docker/mysql/data
