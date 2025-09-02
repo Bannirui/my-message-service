@@ -1,5 +1,7 @@
 package com.github.bannirui.mms.controller;
 
+import com.github.bannirui.mms.client.common.ConsumeFromWhere;
+import com.github.bannirui.mms.common.HostServerType;
 import com.github.bannirui.mms.common.ResourceStatus;
 import com.github.bannirui.mms.dal.mapper.ConsumerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
@@ -8,12 +10,16 @@ import com.github.bannirui.mms.dal.model.ConsumerExtTopicAndEnv;
 import com.github.bannirui.mms.dal.model.TopicEnvHostServerExt;
 import com.github.bannirui.mms.dto.consumer.ConsumerExtDTO;
 import com.github.bannirui.mms.dto.topic.EnvExtDTO;
+import com.github.bannirui.mms.metadata.ClusterMetadata;
+import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.req.consumer.ApplyConsumerReq;
 import com.github.bannirui.mms.req.consumer.ConsumerPageReq;
 import com.github.bannirui.mms.resp.consumer.ApplyConsumerResp;
 import com.github.bannirui.mms.result.PageResult;
 import com.github.bannirui.mms.result.Result;
 import com.github.bannirui.mms.service.consumer.ConsumerService;
+import com.github.bannirui.mms.service.manager.MessageAdminManagerAdapt;
+import com.github.bannirui.mms.service.manager.MiddlewareProcess;
 import com.github.bannirui.mms.service.manager.MmsContextManager;
 import com.github.bannirui.mms.service.router.ZkRouter;
 import com.github.bannirui.mms.util.Assert;
@@ -38,6 +44,8 @@ public class ConsumerController {
     private TopicMapper topicMapper;
     @Autowired
     ZkRouter zkRouter;
+    @Autowired
+    private MessageAdminManagerAdapt messageAdminManagerAdapt;
 
     /**
      * 申请consumer
@@ -93,10 +101,37 @@ public class ConsumerController {
         Assert.that(!Objects.equals(status, ResourceStatus.DELETE.getCode()), "consumer不存在");
         Assert.that((status & ResourceStatus.ENABLE_MASK) == 0, "consumer可用 不需要审批");
         // 分环境注册
-        consumers.forEach(x -> {
+        for (ConsumerExtTopicAndEnv x : consumers) {
             MmsContextManager.setEnv(x.getEnvId());
-            // todo
-        });
+            // 注册到zk
+            ConsumerGroupMetadata consumerMetadata = new ConsumerGroupMetadata();
+            Integer topicType = x.getTopicType();
+            HostServerType type = HostServerType.getByCode(topicType);
+            consumerMetadata.setName(x.getConsumerName());
+            consumerMetadata.setType(type.getDesc());
+            consumerMetadata.setBindingTopic(x.getTopicName());
+            boolean supportConsumeFromMin = Objects.equals(x.getConsumerFromMin(), 1);
+            if (supportConsumeFromMin) {
+                consumerMetadata.setConsumeFrom(ConsumeFromWhere.EARLIEST.getName());
+            } else {
+                consumerMetadata.setConsumeFrom(ConsumeFromWhere.LATEST.getName());
+            }
+            boolean supportBroadcast = Objects.equals(x.getConsumerBroadcast(), 1);
+            if (supportBroadcast) {
+                consumerMetadata.setBroadcast("true");
+            } else {
+                consumerMetadata.setBroadcast("false");
+            }
+            ClusterMetadata clusterMetadata = new ClusterMetadata();
+            consumerMetadata.setName(x.getClusterName());
+            consumerMetadata.setType(type.getDesc());
+            consumerMetadata.setClusterMetadata(clusterMetadata);
+            zkRouter.writeConsumerInfo(consumerMetadata);
+            // 注册到mq broker
+            MiddlewareProcess middlewareManager = this.messageAdminManagerAdapt.getOrCreateAdmin(x.getClusterName());
+            middlewareManager.createConsumerGroup(x.getConsumerName(), supportBroadcast, supportConsumeFromMin);
+
+        }
         this.consumerMapper.updateById(new Consumer() {{
             setId(consumerId);
             setStatus(ResourceStatus.CREATE_APPROVED.getCode());

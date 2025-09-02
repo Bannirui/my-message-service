@@ -17,12 +17,14 @@
         topic.cluster_type as topicType,
         env.id as envId,
         env.sort_id as envSort,
-        env.name as envName
+        env.name as envName,
+        server.name as clusterName
         from consumer
         left join topic on topic.id = consumer.topic_id
         left join topic_ref on topic_ref.topic_id = topic.id
         left join env on env.id = topic_ref.env_id
-        where consumer.id #{consumerId}
+        left join server on server.id=topic_ref.server_id
+        where consumer.id = #{consumerId}
     </select>
     <select id="extTopicAndEnvsByConsumerIds" resultType="com.github.bannirui.mms.dal.model.ConsumerExtTopicAndEnv">
         select
@@ -39,11 +41,13 @@
         topic.cluster_type as topicType,
         env.id as envId,
         env.sort_id as envSort,
-        env.name as envName
+        env.name as envName,
+        server.name as clusterName
         from consumer
         left join topic on topic.id = consumer.topic_id
         left join topic_ref on topic_ref.topic_id = topic.id
         left join env on env.id = topic_ref.env_id
+        left join server on server.id=topic_ref.server_id
         where consumer.id in
         <foreach collection="consumerIds" item="consumerId" open="(" separator="," close=")">
             #{consumerId}

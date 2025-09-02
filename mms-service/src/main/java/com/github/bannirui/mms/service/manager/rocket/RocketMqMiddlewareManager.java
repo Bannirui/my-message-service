@@ -11,7 +11,9 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcessor {
 
@@ -119,5 +120,41 @@ public class RocketMqMiddlewareManager extends AbstractMessageMiddlewareProcesso
     @Override
     public void updateTopic(String topicName, int partitions) {
         // todo
+    }
+
+    @Override
+    public void createConsumerGroup(String consumerGroup, Boolean broadcast, Boolean consumerFromMin) {
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(consumerGroup);
+        subscriptionGroupConfig.setConsumeBroadcastEnable(broadcast);
+        subscriptionGroupConfig.setConsumeFromMinEnable(consumerFromMin);
+        List<String> failedServers = new ArrayList<>();
+        try {
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            Set<String> brokerNames = clusterInfo.getClusterAddrTable().get(clusterName);
+            for (String brokerName : brokerNames) {
+                String brokerAddr = clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr();
+                defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(brokerAddr, subscriptionGroupConfig);
+                logger.info("consumerGroup {} created to {}", consumerGroup, clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr());
+            }
+            // 等待创建subscriptionGroup的异常操作完成
+            Thread.sleep(1_000L);
+            for (String brokerName : brokerNames) {
+                String brokerAddr = clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr();
+                SubscriptionGroupWrapper allSubscriptionGroup = defaultMQAdminExt.getAllSubscriptionGroup(brokerAddr, 1_000L);
+                if (!allSubscriptionGroup.getSubscriptionGroupTable().containsKey(consumerGroup)) {
+                    failedServers.add(clusterInfo.getBrokerAddrTable().get(brokerName).selectBrokerAddr());
+                } else {
+                    logger.info("{} created for server {}", consumerGroup, brokerAddr);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("create or update consumer {} error", consumerGroup, e);
+            throw new MmsException(e.getMessage(), 9999);
+        }
+        if (!CollectionUtils.isEmpty(failedServers)) {
+            logger.error("create or update consumer {} error:{}", consumerGroup, failedServers);
+            throw new MmsException("create consumerGroup in these brokers failed, brokerLst=" + failedServers.toString(), 9999);
+        }
     }
 }

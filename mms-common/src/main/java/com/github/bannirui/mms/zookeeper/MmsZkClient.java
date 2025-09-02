@@ -122,14 +122,7 @@ public class MmsZkClient extends ZooKeeper {
     public void writeConsumerGroupMetadata(String cgName, String cgZkData) {
         try {
             String path = MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, cgName);
-            Stat exists = super.exists(path, false);
-            if (Objects.isNull(exists)) {
-                // insert
-                super.create(path, cgZkData.getBytes(StandardCharsets.UTF_8), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } else {
-                // update 不指定版本
-                super.setData(path, cgZkData.getBytes(StandardCharsets.UTF_8), -1);
-            }
+            this.write2Zk(path, cgZkData, CreateMode.PERSISTENT);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

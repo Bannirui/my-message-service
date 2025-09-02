@@ -57,4 +57,9 @@ public class KafkaMiddlewareManager extends AbstractMessageMiddlewareProcessor {
     public void updateTopic(String topicName, int partitions) {
         // todo
     }
+
+    @Override
+    public void createConsumerGroup(String consumerGroup, Boolean broadcast, Boolean consumerFromMin) {
+        // kafka不需要申请消费组
+    }
 }

@@ -32,4 +32,7 @@ public class ConsumerExtTopicAndEnv {
     private Long envId;
     private Integer envSort;
     private String envName;
+
+    // mq集群名
+    private String clusterName;
 }
