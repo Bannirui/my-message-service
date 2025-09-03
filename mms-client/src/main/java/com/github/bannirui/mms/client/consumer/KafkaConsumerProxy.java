@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, byte[]>> {
+public class KafkaConsumerProxy extends ConsumerProxy<ConsumerRecord<String, byte[]>> {
 
     private final int ackRecords = Integer.parseInt(System.getProperty("ack.records", "100000"));
     private final int consumerPollTimeoutMs = Integer.parseInt(System.getProperty("consumer.poll.timeout.ms", "3000"));
@@ -94,10 +94,10 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
         this.consumer = new KafkaConsumer(this.kafkaProperties);
         this.consumer.subscribe(Lists.newArrayList(((ConsumerGroupMetadata) this.metadata).getBindingTopic()), new ConsumerRebalanceListener() {
             public void onPartitionsRevoked(Collection<TopicPartition> collection) {
-                MmsConsumerProxy.logger.info("partition revoked for {} at {}", KafkaConsumerProxy.this.metadata.getName(), LocalDateTime.now());
+                ConsumerProxy.logger.info("partition revoked for {} at {}", KafkaConsumerProxy.this.metadata.getName(), LocalDateTime.now());
                 if (KafkaConsumerProxy.super.isOrderly) {
                     KafkaConsumerProxy.this.consumeMessageServiceTable.forEach((partition, consumeMessageService) -> {
-                        MmsConsumerProxy.logger.info("stopping partition[{}] orderly consume.", partition);
+                        ConsumerProxy.logger.info("stopping partition[{}] orderly consume.", partition);
                         consumeMessageService.stop();
                         KafkaConsumerProxy.this.commitOffsets(partition);
                     });
@@ -108,8 +108,8 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             }
 
             public void onPartitionsAssigned(Collection<TopicPartition> collection) {
-                MmsConsumerProxy.logger.info("partition assigned for {} at {}", KafkaConsumerProxy.this.metadata.getName(), LocalDateTime.now());
-                MmsConsumerProxy.logger.info("partition assigned " + StringUtils.joinWith(",", collection));
+                ConsumerProxy.logger.info("partition assigned for {} at {}", KafkaConsumerProxy.this.metadata.getName(), LocalDateTime.now());
+                ConsumerProxy.logger.info("partition assigned " + StringUtils.joinWith(",", collection));
                 collection.forEach(partition -> {
                     OffsetAndMetadata offset = KafkaConsumerProxy.this.consumer.committed(partition);
                     if (ConsumeFromWhere.LATEST.getName()
@@ -615,8 +615,8 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                 Set<TopicPartition> assignment = KafkaConsumerProxy.this.consumer.assignment();
                 Set<Integer> commitOffsetPartitionSet =
                         commitOffsetPartitions.stream().filter(assignment::contains).map(TopicPartition::partition).collect(Collectors.toSet());
-                if (MmsConsumerProxy.logger.isDebugEnabled()) {
-                    MmsConsumerProxy.logger.debug("commitOffsets => partitions:{}", commitOffsetPartitionSet);
+                if (ConsumerProxy.logger.isDebugEnabled()) {
+                    ConsumerProxy.logger.debug("commitOffsets => partitions:{}", commitOffsetPartitionSet);
                 }
                 commitOffsetPartitionSet.forEach(KafkaConsumerProxy.this::commitOffsets);
                 this.commitOffsetPartitions.clear();
@@ -630,8 +630,8 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             try {
                 Set<TopicPartition> assignment = KafkaConsumerProxy.this.consumer.assignment();
                 Set<TopicPartition> pausePartitionSet = this.pausePartitions.stream().filter(assignment::contains).collect(Collectors.toSet());
-                if (MmsConsumerProxy.logger.isDebugEnabled()) {
-                    MmsConsumerProxy.logger.debug("pause => partitions:{}", pausePartitionSet);
+                if (ConsumerProxy.logger.isDebugEnabled()) {
+                    ConsumerProxy.logger.debug("pause => partitions:{}", pausePartitionSet);
                 }
                 KafkaConsumerProxy.this.consumer.pause(pausePartitionSet);
                 this.pausePartitions.clear();
@@ -645,8 +645,8 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             try {
                 Set<TopicPartition> assignment = KafkaConsumerProxy.this.consumer.assignment();
                 Set<TopicPartition> resumePartitionSet = resumePartitions.stream().filter(assignment::contains).collect(Collectors.toSet());
-                if (MmsConsumerProxy.logger.isDebugEnabled()) {
-                    MmsConsumerProxy.logger.debug("resume => partitions:{}", resumePartitionSet);
+                if (ConsumerProxy.logger.isDebugEnabled()) {
+                    ConsumerProxy.logger.debug("resume => partitions:{}", resumePartitionSet);
                 }
                 KafkaConsumerProxy.this.consumer.resume(resumePartitionSet);
                 this.pausePartitions.clear();
@@ -679,12 +679,12 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             }
             for (ConsumerRecord<String, byte[]> consumerRecord : consumerRecords) {
                 while (!this.msgConsumeQueue.offer(consumerRecord)) {
-                    MmsConsumerProxy.logger.warn("offer consumer record to msgConsumeQueue full {}, topicPartition:{}", LocalDateTime.now(),
+                    ConsumerProxy.logger.warn("offer consumer record to msgConsumeQueue full {}, topicPartition:{}", LocalDateTime.now(),
                             this.topicPartition);
                     try {
                         TimeUnit.MILLISECONDS.sleep(50L);
                     } catch (InterruptedException e) {
-                        MmsConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
+                        ConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
                     }
                 }
             }
@@ -694,7 +694,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
         }
 
         public void start() {
-            MmsConsumerProxy.logger.info("Partition[{}] starting consume orderly.", this.topicPartition);
+            ConsumerProxy.logger.info("Partition[{}] starting consume orderly.", this.topicPartition);
             (new Thread(() -> {
                 while (this.isStarted()) {
                     if (this.msgConsumeQueue.isEmpty()) {
@@ -702,7 +702,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                         try {
                             TimeUnit.MILLISECONDS.sleep(100L);
                         } catch (InterruptedException e) {
-                            MmsConsumerProxy.logger.error("interrupted when add resume partition");
+                            ConsumerProxy.logger.error("interrupted when add resume partition");
                         }
                     } else {
                         List<ConsumerRecord<String, byte[]>> consumerRecords = new ArrayList(KafkaConsumerProxy.this.orderlyPartitionMaxPollRecords);
@@ -748,21 +748,21 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                                 succ = false;
                                                 break label263;
                                             } catch (Throwable e) {
-                                                MmsConsumerProxy.logger.error("consume message error, record:{}", consumerRecord, e);
+                                                ConsumerProxy.logger.error("consume message error, record:{}", consumerRecord, e);
                                                 succ = false;
                                             } finally {
                                                 if (succ) {
                                                     BlockingQueue bqx = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
                                                             (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                                     while (!bqx.offer(consumerRecord)) {
-                                                        MmsConsumerProxy.logger.warn(
+                                                        ConsumerProxy.logger.warn(
                                                                 "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
                                                                 LocalDateTime.now(), this.topicPartition);
                                                         KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                                         try {
                                                             TimeUnit.MILLISECONDS.sleep(50L);
                                                         } catch (InterruptedException var19) {
-                                                            MmsConsumerProxy.logger.error(
+                                                            ConsumerProxy.logger.error(
                                                                     "interrupted when offer consumerRecord to msgConsumeQueue.");
                                                         }
                                                     }
@@ -772,14 +772,14 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                             bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
                                                     (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                             while (!bq.offer(consumerRecord)) {
-                                                MmsConsumerProxy.logger.warn(
+                                                ConsumerProxy.logger.warn(
                                                         "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
                                                         LocalDateTime.now(), this.topicPartition);
                                                 KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                                 try {
                                                     TimeUnit.MILLISECONDS.sleep(50L);
                                                 } catch (InterruptedException e) {
-                                                    MmsConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
+                                                    ConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
                                                 }
                                             }
                                             countDownLatch.countDown();
@@ -788,14 +788,14 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                         bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
                                                 (p) -> new ArrayBlockingQueue(KafkaConsumerProxy.this.ackPartitionRecords));
                                         while (!bq.offer(consumerRecord)) {
-                                            MmsConsumerProxy.logger.warn(
+                                            ConsumerProxy.logger.warn(
                                                     "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
                                                     LocalDateTime.now(), this.topicPartition);
                                             KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                             try {
                                                 TimeUnit.MILLISECONDS.sleep(50L);
                                             } catch (InterruptedException e) {
-                                                MmsConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
+                                                ConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
                                             }
                                         }
                                         countDownLatch.countDown();
@@ -804,14 +804,14 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                     bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
                                             (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
                                     while (!bq.offer(consumerRecord)) {
-                                        MmsConsumerProxy.logger.warn(
+                                        ConsumerProxy.logger.warn(
                                                 "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
                                                 LocalDateTime.now(), this.topicPartition);
                                         KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                         try {
                                             TimeUnit.MILLISECONDS.sleep(50L);
                                         } catch (InterruptedException e) {
-                                            MmsConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
+                                            ConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
                                         }
                                     }
                                     countDownLatch.countDown();
@@ -820,14 +820,14 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                 bq = KafkaConsumerProxy.this.acksMap.computeIfAbsent(this.partition,
                                         (p) -> new ArrayBlockingQueue<>(KafkaConsumerProxy.this.ackPartitionRecords));
                                 while (!bq.offer(consumerRecord)) {
-                                    MmsConsumerProxy.logger.warn(
+                                    ConsumerProxy.logger.warn(
                                             "add consumer record to acksMap full and trigger commit offsets at {}, topicPartition:{}",
                                             LocalDateTime.now(), this.topicPartition);
                                     KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                                     try {
                                         TimeUnit.MILLISECONDS.sleep(50L);
                                     } catch (InterruptedException e) {
-                                        MmsConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
+                                        ConsumerProxy.logger.error("interrupted when offer consumerRecord to msgConsumeQueue.");
                                     }
                                 }
                                 countDownLatch.countDown();
@@ -839,11 +839,11 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                                     executor.execute(task);
                                     done = true;
                                 } catch (RejectedExecutionException e) {
-                                    MmsConsumerProxy.logger.error("consume slow, wait for moment");
+                                    ConsumerProxy.logger.error("consume slow, wait for moment");
                                     try {
                                         TimeUnit.MILLISECONDS.sleep(50L);
                                     } catch (InterruptedException ex) {
-                                        MmsConsumerProxy.logger.error("interrupted when consume slow");
+                                        ConsumerProxy.logger.error("interrupted when consume slow");
                                     }
                                 }
                             }
@@ -851,7 +851,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
                         try {
                             countDownLatch.await();
                         } catch (InterruptedException e) {
-                            MmsConsumerProxy.logger.error("wait for kafka consumer latch interrupted", e);
+                            ConsumerProxy.logger.error("wait for kafka consumer latch interrupted", e);
                         }
                         KafkaConsumerProxy.this.partitionOperateContext.addCommitOffsetPartition(this.topicPartition);
                     }
@@ -869,7 +869,7 @@ public class KafkaConsumerProxy extends MmsConsumerProxy<ConsumerRecord<String, 
             this.started.compareAndSet(true, false);
             this.msgConsumeQueue.clear();
             this.executors.forEach(ExecutorService::shutdown);
-            MmsConsumerProxy.logger.info("Partition[{}] stopped consume orderly.", this.topicPartition);
+            ConsumerProxy.logger.info("Partition[{}] stopped consume orderly.", this.topicPartition);
         }
     }
 

@@ -16,23 +16,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ConsumerFactory {
 
-    private static Map<String, MmsConsumerProxy> consumers = new ConcurrentHashMap<>();
+    private static Map<String, ConsumerProxy> consumers = new ConcurrentHashMap<>();
 
     public static final Logger logger = MmsLogger.log;
 
     private ConsumerFactory() {
     }
 
-    public static MmsConsumerProxy getConsumer(ConsumerGroup consumerGroup, Properties properties, MessageListener listener) {
+    public static ConsumerProxy getConsumer(ConsumerGroup consumerGroup, Properties properties, MessageListener listener) {
         return doGetConsumer(consumerGroup.getConsumerGroup(), consumerGroup.getConsumerName(), consumerGroup.getTags(), properties, listener);
     }
 
-    private static MmsConsumerProxy doGetConsumer(String consumerGroup, String name, Set<String> tags, Properties properties, MessageListener listener) {
+    private static ConsumerProxy doGetConsumer(String consumerGroup, String name, Set<String> tags, Properties properties, MessageListener listener) {
         String cacheName = consumerGroup + "_" + name;
         if (consumers.get(cacheName) == null) {
             synchronized (ConsumerFactory.class) {
                 if (consumers.get(cacheName) == null) {
-                    MmsConsumerProxy consumer;
+                    ConsumerProxy consumer;
                     ConsumerGroupMetadata metadata;
                     try {
                         metadata = MmsZkClient.getInstance().readConsumerGroupMetadata(consumerGroup);
@@ -59,7 +59,7 @@ public class ConsumerFactory {
     }
 
     public synchronized static void shutdown() {
-        for (Map.Entry<String, MmsConsumerProxy> entry : consumers.entrySet()) {
+        for (Map.Entry<String, ConsumerProxy> entry : consumers.entrySet()) {
             entry.getValue().shutdown();
         }
         consumers.clear();
@@ -80,7 +80,7 @@ public class ConsumerFactory {
         logger.info("Consumer {} removed", key);
     }
 
-    public static Collection<MmsConsumerProxy> getConsumers() {
+    public static Collection<ConsumerProxy> getConsumers() {
         return consumers.values();
     }
 }

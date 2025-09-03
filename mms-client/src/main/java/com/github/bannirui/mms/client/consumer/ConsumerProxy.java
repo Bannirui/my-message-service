@@ -12,12 +12,11 @@ import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.metadata.MmsMetadata;
 import com.github.bannirui.mms.stats.StatsInfo;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 /**
  * 消费者代理 屏蔽中间件差异和细节
@@ -28,7 +27,7 @@ import java.util.Random;
  *
  * @param <T> 消息体类型
  */
-public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> implements Consumer {
+public abstract class ConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> implements Consumer {
 
     public static final Logger logger = MmsLogger.log;
 
@@ -52,7 +51,7 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
         }
     }
 
-    public MmsConsumerProxy(MmsMetadata metadata, boolean isOrderly, String name, Properties properties, MessageListener listener) {
+    public ConsumerProxy(MmsMetadata metadata, boolean isOrderly, String name, Properties properties, MessageListener listener) {
         super(metadata, isOrderly, new MmsConsumerMetrics(metadata.getName(), name));
         this.listener = listener;
         this.customizedProperties = properties;
@@ -61,23 +60,23 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
     @Override
     public void start() {
         if (running) {
-            logger.warn("Conumser {} has been started,cant'be started again", instanceName);
+            logger.warn("消费者{}已经启动 不需要重复启动", instanceName);
             return;
         }
         consumerStart();
         super.start();
         register(listener);
-        logger.info("ConsumerProxy started at {}, consumer group name:{}", System.currentTimeMillis(), metadata.getName());
+        logger.info("消费者{}启动成功", metadata.getName());
     }
 
     protected abstract void consumerStart();
 
     @Override
     public void restart() {
-        logger.info("consumer {} begin to restart", instanceName);
         shutdown();
+        logger.info("消费者即将重启 {}", instanceName);
         try {
-            Thread.sleep(new Random().nextInt(1000));
+            Thread.sleep(new Random().nextInt(1_000));
         } catch (InterruptedException ignored) {
         }
         start();
@@ -91,28 +90,29 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
         ConsumerGroupMetadata oldConsumerMeta = (ConsumerGroupMetadata) oldMetadata;
         ConsumerGroupMetadata newConsumerMeta = (ConsumerGroupMetadata) newMetadata;
         return !Objects.equals(oldConsumerMeta.getClusterMetadata(), newConsumerMeta.getClusterMetadata()) ||
-                !Objects.equals(oldConsumerMeta.getBindingTopic(), newConsumerMeta.getBindingTopic()) ||
-                !Objects.equals(oldConsumerMeta.getBroadcast(), newConsumerMeta.getBroadcast()) ||
-                !Objects.equals(oldConsumerMeta.getConsumeFrom(), newConsumerMeta.getConsumeFrom());
+            !Objects.equals(oldConsumerMeta.getBindingTopic(), newConsumerMeta.getBindingTopic()) ||
+            !Objects.equals(oldConsumerMeta.getBroadcast(), newConsumerMeta.getBroadcast()) ||
+            !Objects.equals(oldConsumerMeta.getConsumeFrom(), newConsumerMeta.getConsumeFrom());
     }
 
     @Override
     public void shutdown() {
         if (!running) {
-            logger.warn("Consumer {} has been shutdown,cant'be shutdown again", instanceName);
+            logger.warn("消费者{}不在运行 不需要停止", instanceName);
             return;
         }
         running = false;
         super.shutdown();
         consumerShutdown();
         ConsumerFactory.recycle(metadata.getName(), instanceName);
-        logger.info("Consumer {} shutdown", instanceName);
+        logger.info("消费者{}成功停止", instanceName);
     }
 
     @Override
     public void statistics() {
         if (running && !isStatistic(mmsMetrics.getClientName())) {
-            if (StringUtils.isEmpty(metadata.getStatisticsLogger()) || StatsLoggerType.MESSAGE.getName().equalsIgnoreCase(metadata.getStatisticsLogger())) {
+            if (StringUtils.isEmpty(metadata.getStatisticsLogger()) ||
+                StatsLoggerType.MESSAGE.getName().equalsIgnoreCase(metadata.getStatisticsLogger())) {
                 StatsInfo info = mmsMetrics.reportMessageStatistics();
                 Mms.sendOneway(MmsConst.STATISTICS.STATISTICS_TOPIC_CONSUMERINFO, new SimpleMessage(JSON.toJSONBytes(info)));
             } else {
@@ -128,7 +128,7 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
 
     protected boolean msgFilter(String mqTagValue) {
         return StringUtils.isBlank(MQ_TAG)
-                && StringUtils.isBlank(mqTagValue) || MQ_TAG.equals(mqTagValue);
+            && StringUtils.isBlank(mqTagValue) || MQ_TAG.equals(mqTagValue);
     }
 
     protected boolean msgFilterByColor(String mqColorValue) {
@@ -137,7 +137,8 @@ public abstract class MmsConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> i
             if (releaseColor.equals("default") && StringUtils.isBlank(mqColorValue)) {
                 return true;
             } else {
-                return StringUtils.isNotBlank(mqColorValue) && (releaseColor.equals("blue") || releaseColor.equals("green")) && MQ_COLOR.equals(mqColorValue);
+                return StringUtils.isNotBlank(mqColorValue) && (releaseColor.equals("blue") || releaseColor.equals("green")) &&
+                    MQ_COLOR.equals(mqColorValue);
             }
         } else {
             return true;

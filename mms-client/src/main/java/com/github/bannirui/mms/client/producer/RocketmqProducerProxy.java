@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 
-public class RocketmqProducerProxy extends MmsProducerProxy {
+public class RocketmqProducerProxy extends ProducerProxy {
     private static final MessageQueueSelector hashSelector;
     DefaultMQProducer producer;
 

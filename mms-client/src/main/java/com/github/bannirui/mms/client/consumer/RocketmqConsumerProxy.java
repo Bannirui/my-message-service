@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springside.modules.utils.collection.CollectionUtil;
 
-public class RocketmqConsumerProxy extends MmsConsumerProxy<MessageExt> {
+public class RocketmqConsumerProxy extends ConsumerProxy<MessageExt> {
 
     public static final Logger logger = LoggerFactory.getLogger(RocketmqConsumerProxy.class);
 
@@ -82,7 +82,7 @@ public class RocketmqConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     }
                     RocketmqConsumerProxy.this.mmsMetrics.consumeSuccessRate().mark();
                 } catch (Throwable e) {
-                    MmsConsumerProxy.logger.error("consumer msg failed for {} batch", msgs.get(0).getMsgId(), e);
+                    ConsumerProxy.logger.error("consumer msg failed for {} batch", msgs.get(0).getMsgId(), e);
                     msgConsumedStatus = MsgConsumedStatus.RETRY;
                     RocketmqConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                 }
@@ -135,7 +135,7 @@ public class RocketmqConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     }
                     RocketmqConsumerProxy.this.mmsMetrics.consumeSuccessRate().mark();
                 } catch (Throwable e) {
-                    MmsConsumerProxy.logger.error("consumer msg failed for {} batch", ((MessageExt) msgs.get(0)).getMsgId(), e);
+                    ConsumerProxy.logger.error("consumer msg failed for {} batch", ((MessageExt) msgs.get(0)).getMsgId(), e);
                     msgConsumedStatus = MsgConsumedStatus.RETRY;
                     RocketmqConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                 }

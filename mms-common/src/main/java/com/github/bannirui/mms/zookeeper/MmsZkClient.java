@@ -227,10 +227,13 @@ public class MmsZkClient extends ZooKeeper {
     }
 
     /**
-     * 读取topic或者consumer group数据
+     * 从zk注册中心读取mq的元数据 topic或者consumer group
      *
      * @param type {@link MmsType}标识topic还是consumer group
-     * @param name 子节点名称 拼接上topic或者consumer group父节点就是完整路径
+     * @param name <ul>
+     *               <li>给生产者拿元数据 就是topic的name</li>
+     *               <li>给消费者拿元数据 就是consumer group的name</li>
+     *             </ul>
      * @return topic或者consumer group数据
      */
     private MmsMetadata readZkInfo(MmsType type, String name) {
@@ -242,12 +245,12 @@ public class MmsZkClient extends ZooKeeper {
             String zkPath = isTopic ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, name);
             Stat exists = super.exists(zkPath, false);
             if (Objects.isNull(exists)) {
-                logger.error("zk path not existed: {}", zkPath);
+                logger.error("尝试从zk注册中心获取{}的元数据 zk路径{}不存在", type, zkPath);
                 throw MmsException.NO_ZK_EXCEPTION;
             }
             byte[] data = super.getData(zkPath, false, null);
             if (Objects.isNull(data)) {
-                logger.error("zk data is null for path: {}", zkPath);
+                logger.error("从zk路径{}拿到的数据是空的", zkPath);
                 throw MmsException.NO_ZK_EXCEPTION;
             }
             Properties properties = this.parseProperties(new String(data));

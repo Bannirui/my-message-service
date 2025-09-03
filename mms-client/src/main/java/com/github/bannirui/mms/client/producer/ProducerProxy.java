@@ -16,7 +16,10 @@ import java.util.Properties;
 import java.util.Random;
 import org.apache.commons.lang3.StringUtils;
 
-public abstract class MmsProducerProxy extends MmsProxy<MmsProducerMetrics> implements Producer {
+/**
+ * 生产者
+ */
+public abstract class ProducerProxy extends MmsProxy<MmsProducerMetrics> implements Producer {
     Properties customizedProperties;
     protected static final String MQ_TAG;
     protected static final String MQ_COLOR;
@@ -33,23 +36,23 @@ public abstract class MmsProducerProxy extends MmsProxy<MmsProducerMetrics> impl
         }
     }
 
-    public MmsProducerProxy(MmsMetadata metadata, boolean order, String name) {
+    public ProducerProxy(MmsMetadata metadata, boolean order, String name) {
         super(metadata, order, new MmsProducerMetrics(metadata.getName(), name));
     }
 
-    public MmsProducerProxy(MmsMetadata metadata, boolean order, String name, Properties properties) {
+    public ProducerProxy(MmsMetadata metadata, boolean order, String name, Properties properties) {
         super(metadata, order, new MmsProducerMetrics(metadata.getName(), name));
         this.customizedProperties = properties;
     }
 
     public void start() {
         if (this.running) {
-            MmsLogger.log.warn("producer {} has been started,can't be start again", this.instanceName);
+            MmsLogger.log.warn("生产者{}已经启动了 不需要重复启动", this.instanceName);
             return;
         }
         this.startProducer();
         super.start();
-        MmsLogger.log.info("Producer {} has been started", this.instanceName);
+        MmsLogger.log.info("生产者{}启动成功", this.instanceName);
     }
 
     public abstract void startProducer();
@@ -81,9 +84,10 @@ public abstract class MmsProducerProxy extends MmsProxy<MmsProducerMetrics> impl
         }
     }
 
+    @Override
     public void shutdown() {
         if (!this.running) {
-            MmsLogger.log.warn("Producer {} has been shutdown,can't be shutdown again", this.instanceName);
+            MmsLogger.log.warn("生产者{}不在运行 不需要停止", this.instanceName);
             return;
         }
         this.running = false;
@@ -95,20 +99,20 @@ public abstract class MmsProducerProxy extends MmsProxy<MmsProducerMetrics> impl
 
     @Override
     public void restart() {
-        MmsLogger.log.info("Producer {} begin to restart", this.instanceName);
+        MmsLogger.log.info("生产者{}即将重启", this.instanceName);
         this.shutdown();
         try {
-            Thread.sleep((new Random()).nextInt(1000));
+            Thread.sleep((new Random()).nextInt(1_000));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    protected MmsProducerProxy.ResetTimeoutAndRetries resetTimeoutAndRetries(int customTimeout, int customRetries) {
+    protected ProducerProxy.ResetTimeoutAndRetries resetTimeoutAndRetries(int customTimeout, int customRetries) {
         if (StringUtils.isNotBlank(MMS_ENABLE_RETRY) && Boolean.parseBoolean(MMS_ENABLE_RETRY)) {
             int totalTimeout = customTimeout * customRetries;
             int resetTimeout = StringUtils.isNotBlank(MMS_TIMEOUT_MS) ? Integer.parseInt(MMS_TIMEOUT_MS) : 500;
-            return new MmsProducerProxy.ResetTimeoutAndRetries(Math.min(resetTimeout, customTimeout),
+            return new ProducerProxy.ResetTimeoutAndRetries(Math.min(resetTimeout, customTimeout),
                 Math.max(totalTimeout / resetTimeout, customRetries));
         } else {
             return null;

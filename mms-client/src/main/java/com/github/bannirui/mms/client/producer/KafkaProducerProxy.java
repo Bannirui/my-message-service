@@ -25,11 +25,8 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springside.modules.utils.net.NetUtil;
 
-public class KafkaProducerProxy extends MmsProducerProxy {
+public class KafkaProducerProxy extends ProducerProxy {
     private static final Charset utf_8 = StandardCharsets.UTF_8;
     private KafkaProducer<String, byte[]> producer;
     private int sendTimeOut = 3000;

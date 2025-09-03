@@ -2,9 +2,11 @@ package com.github.bannirui.mms.client;
 
 import com.github.bannirui.mms.client.metrics.MmsMetrics;
 import com.github.bannirui.mms.common.MmsConst;
+import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.common.MmsType;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.MmsMetadata;
+import com.github.bannirui.mms.util.Assert;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import org.apache.zookeeper.*;
 
@@ -29,16 +31,18 @@ public abstract class MmsProxy<K extends MmsMetrics> implements LifeCycle {
      */
     Watcher zkDataListener = event -> {
         MmsMetadata newMetadata = null;
-        if (MmsProxy.this.metadata.getType().equals(MmsType.TOPIC.getName())) {
+        if (Objects.equals(MmsProxy.this.metadata.getType(), MmsType.TOPIC.getName())) {
             newMetadata = MmsProxy.this.getZkInstance().readTopicMetadata(MmsProxy.this.metadata.getName());
-        } else {
+        } else if (Objects.equals(MmsProxy.this.metadata.getType(), MmsType.CONSUMER_GROUP.getName())) {
             newMetadata = MmsProxy.this.getZkInstance().readConsumerGroupMetadata(MmsProxy.this.metadata.getName());
+        } else {
+            throw new MmsException("mq类型未知");
         }
         if (Objects.isNull(newMetadata)) {
             return;
         }
-        MmsLogger.log.info("metadata {} change notified", newMetadata.toString());
-        if (!MmsProxy.this.metadata.getClusterMetadata().getBrokerType().equals(((MmsMetadata) newMetadata).getClusterMetadata().getBrokerType())) {
+        MmsLogger.log.info("metadata {} change notified", newMetadata);
+        if (!Objects.equals(MmsProxy.this.metadata.getClusterMetadata().getBrokerType(), newMetadata.getClusterMetadata().getBrokerType())) {
             MmsLogger.log.error("BrokerType can't be change for topic or consumergroup when running");
         } else if (MmsProxy.this.metadata.equals(newMetadata)) {
             MmsLogger.log.info("ignore the change, for it's the same with before");

@@ -6,13 +6,12 @@ import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.TopicMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
-import org.slf4j.Logger;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
 
 public class ProducerFactory {
 
@@ -22,24 +21,24 @@ public class ProducerFactory {
      * key=topic_name
      * name是给生产者的名字 默认用{@link MmsConst#DEFAULT_PRODUCER}
      */
-    private final static Map<String, MmsProducerProxy> topicProducers = new ConcurrentHashMap<>();
+    private final static Map<String, ProducerProxy> topicProducers = new ConcurrentHashMap<>();
 
     private ProducerFactory() {
     }
 
-    public static MmsProducerProxy getProducer(String topic) {
+    public static ProducerProxy getProducer(String topic) {
         return doGetProducer(topic, MmsConst.DEFAULT_PRODUCER);
     }
 
-    public static MmsProducerProxy getProducer(String topic, Properties properties) {
-        if (properties == null || properties.isEmpty()) {
+    public static ProducerProxy getProducer(String topic, Properties properties) {
+        if (Objects.isNull(properties) || properties.isEmpty()) {
             return getProducer(topic);
         }
         return doGetProducer(topic, MmsConst.DEFAULT_PRODUCER, properties);
     }
 
     public synchronized static void shutdown() {
-        for (Map.Entry<String, MmsProducerProxy> entry : topicProducers.entrySet()) {
+        for (Map.Entry<String, ProducerProxy> entry : topicProducers.entrySet()) {
             entry.getValue().shutdown();
         }
         topicProducers.clear();
@@ -51,7 +50,7 @@ public class ProducerFactory {
         if (topicProducers.containsKey(key)) {
             topicProducers.get(key).shutdown();
         }
-        logger.info("Producer of " + topic + " has been shutdown");
+        logger.info("{}的生产者成功停止", topic);
     }
 
     static void recycle(String name, String instanceName) {
@@ -60,31 +59,39 @@ public class ProducerFactory {
         logger.info("producer {} has been remove", key);
     }
 
-    public static Collection<MmsProducerProxy> getProducers() {
+    public static Collection<ProducerProxy> getProducers() {
         return topicProducers.values();
     }
 
-    private static MmsProducerProxy doGetProducer(String topic, String name, Properties properties) {
+    /**
+     * 尝试从缓存中取代理对象 没有就从注册中心根据topic拿到mq的元数据生成代理对象缓存起来
+     * @param topic topic的名字
+     * @param name 生产者的名字
+     * @param properties 生产者的配置
+     * @return 生产者的代理对象
+     */
+    private static ProducerProxy doGetProducer(String topic, String name, Properties properties) {
         String cacheName = topic + "_" + name;
         if (topicProducers.get(cacheName) == null) {
             synchronized (ProducerFactory.class) {
                 if (topicProducers.get(cacheName) == null) {
-                    MmsProducerProxy producer;
+                    ProducerProxy producer;
                     TopicMetadata metadata;
                     try {
                         metadata = MmsZkClient.getInstance().readTopicMetadata(topic);
                     } catch (Exception ex) {
-                        logger.error("read topic {} metadata error", topic, ex);
+                        logger.error("为{}读取topic元数据失败", topic, ex);
                         throw MmsException.METAINFO_EXCEPTION;
                     }
-                    logger.info("Producer create: topic metadata is {}", metadata.toString());
-                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
+                    logger.info("读到的topic元数据是{}", metadata);
+                    if (Objects.equals(HostServerType.ROCKETMQ.getCode(), metadata.getClusterMetadata().getBrokerType())) {
                         producer = new RocketmqProducerProxy(metadata, false, name, properties);
-                    } else {
+                    } else if (Objects.equals(HostServerType.KAFKA.getCode(), metadata.getClusterMetadata().getBrokerType())) {
                         producer = new KafkaProducerProxy(metadata, false, name, properties);
+                    } else {
+                        throw new MmsException("mq类型未知");
                     }
                     topicProducers.putIfAbsent(cacheName, producer);
-                    return producer;
                 }
             }
         }
@@ -92,27 +99,32 @@ public class ProducerFactory {
     }
 
     /**
+     * 从缓存{@link ProducerFactory#topicProducers}中拿生产者代理对象
+     * 拿不到就尝试从注册中心取mq元数据生成生产者代理对象
+     *
      * @param topic topic的名字
      * @param name  生产者的名字
      */
-    private static MmsProducerProxy doGetProducer(String topic, String name) {
+    private static ProducerProxy doGetProducer(String topic, String name) {
         String cacheName = topic + "_" + name;
         if (Objects.isNull(topicProducers.get(cacheName))) {
             synchronized (topicProducers) {
                 if (Objects.isNull(topicProducers.get(cacheName))) {
-                    MmsProducerProxy producer = null;
+                    ProducerProxy producer = null;
                     TopicMetadata metadata = null;
                     try {
                         metadata = MmsZkClient.getInstance().readTopicMetadata(topic);
                     } catch (Exception ex) {
-                        logger.error("read topic {} metadata error", topic, ex);
+                        logger.error("从注册中心读{}这个topic元数据失败", topic, ex);
                         throw MmsException.METAINFO_EXCEPTION;
                     }
-                    logger.info("Producer create: topic metadata is {}", metadata.toString());
+                    logger.info("开始创建生产者代理对象 生产者元数据{}", metadata);
                     if (Objects.equals(HostServerType.ROCKETMQ.getCode(), metadata.getClusterMetadata().getBrokerType())) {
                         producer = new RocketmqProducerProxy(metadata, false, name);
-                    } else {
+                    } else if (Objects.equals(HostServerType.KAFKA.getCode(), metadata.getClusterMetadata().getBrokerType())) {
                         producer = new KafkaProducerProxy(metadata, false, name);
+                    } else {
+                        throw new MmsException("mq类型未知");
                     }
                     topicProducers.putIfAbsent(cacheName, producer);
                     return producer;

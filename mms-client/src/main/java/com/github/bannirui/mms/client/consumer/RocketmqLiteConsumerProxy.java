@@ -41,7 +41,7 @@ import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
-public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
+public class RocketmqLiteConsumerProxy extends ConsumerProxy<MessageExt> {
     private long consumerPollTimeoutMs = Long.parseLong(System.getProperty("consumer.poll.timeout.ms", "100"));
     private int orderlyPartitionMaxConsumeRecords = Integer.parseInt(System.getProperty("orderly.partition.max.consume.records", "2000"));
     private int orderlyPartitionMaxPollRecords = Integer.parseInt(System.getProperty("orderly.partition.max.poll.records", "200"));
@@ -504,7 +504,7 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
             try {
                 this.resumePartitions.remove(messageQueue);
                 this.pausePartitions.add(messageQueue);
-                MmsConsumerProxy.logger.warn("MessageQueue consumerGroup:{},brokerName:{}, topic:{},queueId:{} is pause", RocketmqLiteConsumerProxy.this.consumer.getConsumerGroup(),
+                ConsumerProxy.logger.warn("MessageQueue consumerGroup:{},brokerName:{}, topic:{},queueId:{} is pause", RocketmqLiteConsumerProxy.this.consumer.getConsumerGroup(),
                     messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
             } finally {
                 this.pauseAndResumeWriteLock.unlock();
@@ -526,7 +526,7 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     this.pausePartitions.remove(messageQueue);
                     this.alreadyPausePartitions.remove(messageQueue);
                     this.resumePartitions.add(messageQueue);
-                    MmsConsumerProxy.logger.info("MessageQueue consumerGroup:{},brokerName:{}, topic:{},queueId:{} is resume",
+                    ConsumerProxy.logger.info("MessageQueue consumerGroup:{},brokerName:{}, topic:{},queueId:{} is resume",
                         RocketmqLiteConsumerProxy.this.consumer.getConsumerGroup(), messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
                 }
             } finally {
@@ -580,8 +580,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     try {
                         RocketmqLiteConsumerProxy.this.decryptMsgBodyIfNecessary(msgx);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("消息解密失败", e);
-                        MmsConsumerProxy.logger.error("消息解密失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msgx.getMsgId(), msgx.getKeys(), msgx.getQueueId(), msgx.getQueueOffset());
+                        ConsumerProxy.logger.error("消息解密失败", e);
+                        ConsumerProxy.logger.error("消息解密失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msgx.getMsgId(), msgx.getKeys(), msgx.getQueueId(), msgx.getQueueOffset());
                         throw new RuntimeException(e);
                     }
                 });
@@ -605,8 +605,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                                     RocketmqLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(durationxx, TimeUnit.MILLISECONDS);
                                     RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                                 } catch (Throwable e) {
-                                    MmsConsumerProxy.logger.error("顺序消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", consumeMessage.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
-                                    MmsConsumerProxy.logger.error("顺序消费失败", e);
+                                    ConsumerProxy.logger.error("顺序消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", consumeMessage.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
+                                    ConsumerProxy.logger.error("顺序消费失败", e);
                                 }
                                 TimeUnit.MILLISECONDS.sleep(1_000L);
                             }
@@ -626,8 +626,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                                     RocketmqLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(durationx, TimeUnit.MILLISECONDS);
                                     RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                                 } catch (Throwable e) {
-                                    MmsConsumerProxy.logger.error("顺序消费失败", e);
-                                    MmsConsumerProxy.logger.error("顺序消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
+                                    ConsumerProxy.logger.error("顺序消费失败", e);
+                                    ConsumerProxy.logger.error("顺序消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
                                 }
                                 TimeUnit.MILLISECONDS.sleep(5_000L);
                             }
@@ -652,14 +652,14 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                             RocketmqLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(duration, TimeUnit.MILLISECONDS);
                             RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                         } catch (Throwable e) {
-                            MmsConsumerProxy.logger.error("顺序消费失败", e);
-                            MmsConsumerProxy.logger.error("顺序消费失败, 待消费详情: {}", RocketmqLiteConsumerProxy.this.showBatchMsgInfo(needConsumeList));
+                            ConsumerProxy.logger.error("顺序消费失败", e);
+                            ConsumerProxy.logger.error("顺序消费失败, 待消费详情: {}", RocketmqLiteConsumerProxy.this.showBatchMsgInfo(needConsumeList));
                         }
                     }
                     this.removeMessageAndCommitOffset(msgs);
                 }
             } catch (Throwable e) {
-                MmsConsumerProxy.logger.error("consume message error", e);
+                ConsumerProxy.logger.error("consume message error", e);
             }
         }
     }
@@ -684,8 +684,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     try {
                         RocketmqLiteConsumerProxy.this.decryptMsgBodyIfNecessary(msgx);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("消息解密失败", e);
-                        MmsConsumerProxy.logger.error("消息解密失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", new Object[]{msgx.getMsgId(), msgx.getKeys(), msgx.getQueueId(), msgx.getQueueOffset()});
+                        ConsumerProxy.logger.error("消息解密失败", e);
+                        ConsumerProxy.logger.error("消息解密失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", new Object[]{msgx.getMsgId(), msgx.getKeys(), msgx.getQueueId(), msgx.getQueueOffset()});
                         throw new RuntimeException(e);
                     }
                 });
@@ -701,8 +701,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                                 consumeMessage = ConsumeMessage.parse(msg);
                                 status = rocketmqMessageListener.onMessage(consumeMessage);
                             } catch (Throwable e) {
-                                MmsConsumerProxy.logger.error("并发消费失败,将按重试策略进行重试", e);
-                                MmsConsumerProxy.logger.error("并发消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
+                                ConsumerProxy.logger.error("并发消费失败,将按重试策略进行重试", e);
+                                ConsumerProxy.logger.error("并发消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
                             }
                             if (status != MsgConsumedStatus.SUCCEED) {
                                 RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
@@ -717,8 +717,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                             try {
                                 status = rocketmqMessageListener.onMessage(msg);
                             } catch (Throwable e) {
-                                MmsConsumerProxy.logger.error("并发消费失败，将按重试策略进行重试", e);
-                                MmsConsumerProxy.logger.error("并发消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
+                                ConsumerProxy.logger.error("并发消费失败，将按重试策略进行重试", e);
+                                ConsumerProxy.logger.error("并发消费失败, msginfo: msgId:{},msgKey:{}, msg queueid:{},msg offset:{}", msg.getMsgId(), msg.getKeys(), msg.getQueueId(), msg.getQueueOffset());
                             }
                             if (status != MsgConsumedStatus.SUCCEED) {
                                 RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
@@ -737,8 +737,8 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     try {
                         status = batchMsgListener.onMessage(needConsumeList);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("并发消费失败，将按照重试策略进行重试", e);
-                        MmsConsumerProxy.logger.error("并发消费失败, 待消费详情: {}", RocketmqLiteConsumerProxy.this.showBatchMsgInfo(needConsumeList));
+                        ConsumerProxy.logger.error("并发消费失败，将按照重试策略进行重试", e);
+                        ConsumerProxy.logger.error("并发消费失败, 待消费详情: {}", RocketmqLiteConsumerProxy.this.showBatchMsgInfo(needConsumeList));
                     }
                     if (status != MsgConsumedStatus.SUCCEED) {
                         RocketmqLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
@@ -751,7 +751,7 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                     this.removeMessageAndCommitOffset(needConsumeList);
                 }
             } catch (Throwable e) {
-                MmsConsumerProxy.logger.error("consume message error", e);
+                ConsumerProxy.logger.error("consume message error", e);
             }
         }
     }
@@ -764,7 +764,7 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
             try {
                 this.msgQueue.put(msg);
             } catch (InterruptedException e) {
-                MmsConsumerProxy.logger.error("ignore interrupt ", e);
+                ConsumerProxy.logger.error("ignore interrupt ", e);
             }
 
         }
@@ -781,14 +781,14 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
                             this.doTask(msgs);
                             continue;
                         } catch (InterruptedException e) {
-                            MmsConsumerProxy.logger.info("{} is Interrupt", Thread.currentThread().getName());
+                            ConsumerProxy.logger.info("{} is Interrupt", Thread.currentThread().getName());
                         } catch (Throwable e) {
-                            MmsConsumerProxy.logger.error("consume message error ", e);
+                            ConsumerProxy.logger.error("consume message error ", e);
                             continue;
                         }
                     }
                 } catch (Throwable e) {
-                    MmsConsumerProxy.logger.error("consume message error ", e);
+                    ConsumerProxy.logger.error("consume message error ", e);
                 }
                 return;
             }
@@ -826,18 +826,18 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
         }
 
         public void start() {
-            MmsConsumerProxy.logger.info("QueueId[{}] starting consume orderly.", this.messageQueue.getQueueId());
+            ConsumerProxy.logger.info("QueueId[{}] starting consume orderly.", this.messageQueue.getQueueId());
         }
 
         public void stop() {
             this.started.compareAndSet(true, false);
-            MmsConsumerProxy.logger.info("MessageQueue[{}] stopped consume orderly.", this.messageQueue);
+            ConsumerProxy.logger.info("MessageQueue[{}] stopped consume orderly.", this.messageQueue);
         }
 
         private final int getHashCode(MessageExt msg) {
             String keys = msg.getKeys();
             if (StringUtils.isEmpty(keys)) {
-                MmsConsumerProxy.logger.error("顺序消费没有设置key,将采用默认key，请及时优化");
+                ConsumerProxy.logger.error("顺序消费没有设置key,将采用默认key，请及时优化");
                 return this.NO_KEY_HASH;
             } else {
                 return keys.hashCode();
@@ -864,13 +864,13 @@ public class RocketmqLiteConsumerProxy extends MmsConsumerProxy<MessageExt> {
 
         @Override
         public void start() {
-            MmsConsumerProxy.logger.info("QueueId[{}] starting consume concurrently.", this.messageQueue.getQueueId());
+            ConsumerProxy.logger.info("QueueId[{}] starting consume concurrently.", this.messageQueue.getQueueId());
         }
 
         @Override
         public void stop() {
             this.started.compareAndSet(true, false);
-            MmsConsumerProxy.logger.info("QueueId[{}] stop consume concurrently.", this.messageQueue.getQueueId());
+            ConsumerProxy.logger.info("QueueId[{}] stop consume concurrently.", this.messageQueue.getQueueId());
         }
     }
 

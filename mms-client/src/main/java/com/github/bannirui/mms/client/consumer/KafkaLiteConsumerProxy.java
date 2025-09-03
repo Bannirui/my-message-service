@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
-public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
+public class KafkaLiteConsumerProxy extends ConsumerProxy<ConsumerRecord> {
 
     private final int consumerPollTimeoutMs = Integer.parseInt(System.getProperty("consumer.poll.timeout.ms", "3000"));
     private final int orderlyPartitionMaxConsumeRecords = Integer.parseInt(System.getProperty("orderly.partition.max.consume.records", "2000"));
@@ -87,14 +87,14 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
         this.consumer.subscribe(Lists.newArrayList(((ConsumerGroupMetadata) this.metadata).getBindingTopic()), new ConsumerRebalanceListener() {
             @Override
             public void onPartitionsRevoked(Collection<TopicPartition> collection) {
-                MmsConsumerProxy.logger.info("partition revoked for {} at {}", KafkaLiteConsumerProxy.this.metadata.getName(), LocalDateTime.now());
+                ConsumerProxy.logger.info("partition revoked for {} at {}", KafkaLiteConsumerProxy.this.metadata.getName(), LocalDateTime.now());
                 KafkaLiteConsumerProxy.this.commitOffsets();
             }
 
             @Override
             public void onPartitionsAssigned(Collection<TopicPartition> collection) {
-                MmsConsumerProxy.logger.info("partition assigned for {} at {}", KafkaLiteConsumerProxy.this.metadata.getName(), LocalDateTime.now());
-                MmsConsumerProxy.logger.info("partition assigned " + StringUtils.joinWith(",", new Object[]{collection}));
+                ConsumerProxy.logger.info("partition assigned for {} at {}", KafkaLiteConsumerProxy.this.metadata.getName(), LocalDateTime.now());
+                ConsumerProxy.logger.info("partition assigned " + StringUtils.joinWith(",", new Object[]{collection}));
                 for (TopicPartition partition : collection) {
                     OffsetAndMetadata offset = KafkaLiteConsumerProxy.this.consumer.committed(partition);
                     if (offset == null) {
@@ -351,8 +351,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
             try {
                 Set<TopicPartition> assignment = KafkaLiteConsumerProxy.this.consumer.assignment();
                 Set<TopicPartition> pausePartitionSet = this.pausePartitions.stream().filter(assignment::contains).collect(Collectors.toSet());
-                if (MmsConsumerProxy.logger.isDebugEnabled()) {
-                    MmsConsumerProxy.logger.debug("pause => partitions:{}", pausePartitionSet);
+                if (ConsumerProxy.logger.isDebugEnabled()) {
+                    ConsumerProxy.logger.debug("pause => partitions:{}", pausePartitionSet);
                 }
                 KafkaLiteConsumerProxy.this.consumer.pause(pausePartitionSet);
                 this.pausePartitions.clear();
@@ -366,8 +366,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
             try {
                 Set<TopicPartition> assignment = KafkaLiteConsumerProxy.this.consumer.assignment();
                 Set<TopicPartition> resumePartitionSet = this.resumePartitions.stream().filter(assignment::contains).collect(Collectors.toSet());
-                if (MmsConsumerProxy.logger.isDebugEnabled()) {
-                    MmsConsumerProxy.logger.debug("resume => partitions:{}", resumePartitionSet);
+                if (ConsumerProxy.logger.isDebugEnabled()) {
+                    ConsumerProxy.logger.debug("resume => partitions:{}", resumePartitionSet);
                 }
                 KafkaLiteConsumerProxy.this.consumer.resume(resumePartitionSet);
                 this.pausePartitions.clear();
@@ -397,13 +397,13 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
         @Override
         public void start() {
-            MmsConsumerProxy.logger.info("Partition[{}] starting consume concurrently.", this.topicPartition.partition());
+            ConsumerProxy.logger.info("Partition[{}] starting consume concurrently.", this.topicPartition.partition());
         }
 
         @Override
         public void stop() {
             this.started.compareAndSet(true, false);
-            MmsConsumerProxy.logger.info("Partition[{}] stop consume concurrently.", this.topicPartition.partition());
+            ConsumerProxy.logger.info("Partition[{}] stop consume concurrently.", this.topicPartition.partition());
         }
     }
 
@@ -430,8 +430,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     try {
                         KafkaLiteConsumerProxy.this.decryptMsgBodyIfNecessary(recordx);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("消息解密失败", e);
-                        MmsConsumerProxy.logger.error("并发消费失败, recordInfo: record Key:{}, record partition:{},record offset:{}", recordx.key(), recordx.partition(), recordx.offset());
+                        ConsumerProxy.logger.error("消息解密失败", e);
+                        ConsumerProxy.logger.error("并发消费失败, recordInfo: record Key:{}, record partition:{},record offset:{}", recordx.key(), recordx.partition(), recordx.offset());
                         throw new RuntimeException(e);
                     }
                 });
@@ -452,8 +452,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                             KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(duration, TimeUnit.MILLISECONDS);
                             KafkaLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                         } catch (Throwable e) {
-                            MmsConsumerProxy.logger.error("顺序消费失败", e);
-                            MmsConsumerProxy.logger.error("顺序消费失败, 待消费详情: {}", KafkaLiteConsumerProxy.this.showBatchMsgInfo(needConusmeList));
+                            ConsumerProxy.logger.error("顺序消费失败", e);
+                            ConsumerProxy.logger.error("顺序消费失败, 待消费详情: {}", KafkaLiteConsumerProxy.this.showBatchMsgInfo(needConusmeList));
                         }
                     }
                     this.removeMessageAndCommitOffset(needConusmeList);
@@ -477,8 +477,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                                     KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(durationxx, TimeUnit.MILLISECONDS);
                                     KafkaLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                                 } catch (Throwable e) {
-                                    MmsConsumerProxy.logger.error("顺序消费失败, recordInfo: record key:{}, record partition:{},record offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
-                                    MmsConsumerProxy.logger.error("顺序消费失败", e);
+                                    ConsumerProxy.logger.error("顺序消费失败, recordInfo: record key:{}, record partition:{},record offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
+                                    ConsumerProxy.logger.error("顺序消费失败", e);
                                 }
                                 TimeUnit.MILLISECONDS.sleep(2000L);
                             }
@@ -498,8 +498,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                                     KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(durationx, TimeUnit.MILLISECONDS);
                                     KafkaLiteConsumerProxy.this.mmsMetrics.consumeFailureRate().mark();
                                 } catch (Throwable e) {
-                                    MmsConsumerProxy.logger.error("顺序消费失败", e);
-                                    MmsConsumerProxy.logger.error("顺序消费失败, recordInfo: record key:{}, record partition:{},record offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
+                                    ConsumerProxy.logger.error("顺序消费失败", e);
+                                    ConsumerProxy.logger.error("顺序消费失败, recordInfo: record key:{}, record partition:{},record offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
                                 }
                                 TimeUnit.MILLISECONDS.sleep(5_000L);
                             }
@@ -508,7 +508,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     }
                 }
             } catch (Throwable e) {
-                MmsConsumerProxy.logger.error("consume message error", e);
+                ConsumerProxy.logger.error("consume message error", e);
             }
         }
     }
@@ -536,8 +536,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     try {
                         KafkaLiteConsumerProxy.this.decryptMsgBodyIfNecessary(recordx);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("消息解密失败", e);
-                        MmsConsumerProxy.logger.error("并发消费失败, msgInfo: msg key:{}, msg partition:{},msg offset:{}", new Object[]{recordx.key(), recordx.partition(), recordx.offset()});
+                        ConsumerProxy.logger.error("消息解密失败", e);
+                        ConsumerProxy.logger.error("并发消费失败, msgInfo: msg key:{}, msg partition:{},msg offset:{}", new Object[]{recordx.key(), recordx.partition(), recordx.offset()});
                         throw new RuntimeException(e);
                     }
                 });
@@ -552,8 +552,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                                 consumeMessage = ConsumeMessage.parse(record);
                                 kafkaMessageListener.onMessage(consumeMessage);
                             } catch (Throwable e) {
-                                MmsConsumerProxy.logger.error("并发消费失败,将按重试策略进行重试", e);
-                                MmsConsumerProxy.logger.error("并发消费失败, msginfo: msgKey:{}, msg queueid:{},msg offset:{}", record.key(), record.partition(), record.offset());
+                                ConsumerProxy.logger.error("并发消费失败,将按重试策略进行重试", e);
+                                ConsumerProxy.logger.error("并发消费失败, msginfo: msgKey:{}, msg queueid:{},msg offset:{}", record.key(), record.partition(), record.offset());
                             }
                             long durationx = System.currentTimeMillis() - beginx;
                             KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(durationx, TimeUnit.MILLISECONDS);
@@ -562,8 +562,8 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                             try {
                                 kafkaMessageListener.onMessage(record);
                             } catch (Throwable e) {
-                                MmsConsumerProxy.logger.error("并发消费失败，将按重试策略进行重试", e);
-                                MmsConsumerProxy.logger.error("并发消费失败, msginfo: msgKey:{}, msg queueid:{},msg offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
+                                ConsumerProxy.logger.error("并发消费失败，将按重试策略进行重试", e);
+                                ConsumerProxy.logger.error("并发消费失败, msginfo: msgKey:{}, msg queueid:{},msg offset:{}", new Object[]{record.key(), record.partition(), record.offset()});
                             }
                             long duration = System.currentTimeMillis() - beginx;
                             KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(duration, TimeUnit.MILLISECONDS);
@@ -576,15 +576,15 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                     try {
                         kafkaBatchMsgListener.onMessage(needConusmeList);
                     } catch (Throwable e) {
-                        MmsConsumerProxy.logger.error("并发消费失败，将按照重试策略进行重试", e);
-                        MmsConsumerProxy.logger.error("并发消费失败, 待消费详情: {}", KafkaLiteConsumerProxy.this.showBatchMsgInfo(needConusmeList));
+                        ConsumerProxy.logger.error("并发消费失败，将按照重试策略进行重试", e);
+                        ConsumerProxy.logger.error("并发消费失败, 待消费详情: {}", KafkaLiteConsumerProxy.this.showBatchMsgInfo(needConusmeList));
                     }
                     beginx = System.currentTimeMillis() - begin;
                     KafkaLiteConsumerProxy.this.mmsMetrics.userCostTimeMs().update(beginx, TimeUnit.MILLISECONDS);
                     this.removeMessageAndCommitOffset(needConusmeList);
                 }
             } catch (Throwable e) {
-                MmsConsumerProxy.logger.error("consume message error", e);
+                ConsumerProxy.logger.error("consume message error", e);
             }
         }
     }
@@ -597,7 +597,7 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
             try {
                 this.msgQueue.put(msg);
             } catch (InterruptedException e) {
-                MmsConsumerProxy.logger.error("ignore interrupt ", e);
+                ConsumerProxy.logger.error("ignore interrupt ", e);
             }
         }
 
@@ -614,14 +614,14 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
                             this.doTask(msgs);
                             continue;
                         } catch (InterruptedException e) {
-                            MmsConsumerProxy.logger.info("{} is Interrupt", Thread.currentThread().getName(), e);
+                            ConsumerProxy.logger.info("{} is Interrupt", Thread.currentThread().getName(), e);
                         } catch (Throwable e) {
-                            MmsConsumerProxy.logger.error("consume message error, ", e);
+                            ConsumerProxy.logger.error("consume message error, ", e);
                             continue;
                         }
                     }
                 } catch (Throwable e) {
-                    MmsConsumerProxy.logger.error("consume message error, ", e);
+                    ConsumerProxy.logger.error("consume message error, ", e);
                 }
                 return;
             }
@@ -663,19 +663,19 @@ public class KafkaLiteConsumerProxy extends MmsConsumerProxy<ConsumerRecord> {
 
         @Override
         public void start() {
-            MmsConsumerProxy.logger.info("partition[{}] starting consume orderly.", this.topicPartition.partition());
+            ConsumerProxy.logger.info("partition[{}] starting consume orderly.", this.topicPartition.partition());
         }
 
         @Override
         public void stop() {
             this.started.compareAndSet(true, false);
-            MmsConsumerProxy.logger.info("TopicPartition[{}] stopped consume orderly.", this.topicPartition);
+            ConsumerProxy.logger.info("TopicPartition[{}] stopped consume orderly.", this.topicPartition);
         }
 
         private int getHashCode(ConsumerRecord<String, byte[]> record) {
             String key = record.key();
             if (StringUtils.isEmpty(key)) {
-                MmsConsumerProxy.logger.error("顺序消费没有设置key,将采用默认key，请及时优化");
+                ConsumerProxy.logger.error("顺序消费没有设置key,将采用默认key，请及时优化");
                 return this.NO_KEY_HASH;
             } else {
                 return key.hashCode();
