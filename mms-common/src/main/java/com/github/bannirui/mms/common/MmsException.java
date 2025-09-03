@@ -8,7 +8,7 @@ public class MmsException extends RuntimeException {
 
     public static final MmsException EMPTY_TOPIC_EXCEPTION = new MmsException("Topic cant'be empty ", 1003);
 
-    public static final MmsException NO_ZK_EXCEPTION = new MmsException("no startup param mms_zk exists ", 1004);
+    public static final MmsException NO_ZK_EXCEPTION = new MmsException("no startup param " + MmsConst.ZK.MMS_STARTUP_PARAM + " exists ", 1004);
 
     public static final MmsException NOT_RUNNNING_EXCEPTION = new MmsException("Proxy is not running ", 1005);
 

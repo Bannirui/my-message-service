@@ -18,7 +18,10 @@ public class ProducerFactory {
 
     public static final Logger logger = MmsLogger.log;
 
-    // key=topic_name
+    /**
+     * key=topic_name
+     * name是给生产者的名字 默认用{@link MmsConst#DEFAULT_PRODUCER}
+     */
     private final static Map<String, MmsProducerProxy> topicProducers = new ConcurrentHashMap<>();
 
     private ProducerFactory() {
@@ -88,6 +91,10 @@ public class ProducerFactory {
         return topicProducers.get(cacheName);
     }
 
+    /**
+     * @param topic topic的名字
+     * @param name  生产者的名字
+     */
     private static MmsProducerProxy doGetProducer(String topic, String name) {
         String cacheName = topic + "_" + name;
         if (Objects.isNull(topicProducers.get(cacheName))) {
@@ -102,7 +109,7 @@ public class ProducerFactory {
                         throw MmsException.METAINFO_EXCEPTION;
                     }
                     logger.info("Producer create: topic metadata is {}", metadata.toString());
-                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
+                    if (Objects.equals(HostServerType.ROCKETMQ.getCode(), metadata.getClusterMetadata().getBrokerType())) {
                         producer = new RocketmqProducerProxy(metadata, false, name);
                     } else {
                         producer = new KafkaProducerProxy(metadata, false, name);

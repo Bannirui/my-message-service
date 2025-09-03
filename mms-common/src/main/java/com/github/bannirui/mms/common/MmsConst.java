@@ -36,7 +36,14 @@ public class MmsConst {
     }
 
     public static class ZK {
-        public static final String MMS_STARTUP_PARAM = "mms_zk";
+        /**
+         * mms用zk作注册中心 持久化关于mq的cluster consumer和topic的元数据
+         * <ul>
+         *     <li>zk单机 ip:port</li>
+         *     <li>zk集群 ip1:port1,ip2:port2</li>
+         * </ul>
+         */
+        public static final String MMS_STARTUP_PARAM = "mms_zookeeper_register";
         public static final String ENV = "env";
         public static final String ROOT_ZKPATH = "/mms";
         public static final String CLUSTER_ZKPATH = ROOT_ZKPATH + "/cluster";
