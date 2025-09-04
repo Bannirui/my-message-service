@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * mms的代理
+ * mms屏蔽了mq的类型 因此提供一个对mms服务的代理
+ * @param <K>
+ */
 public abstract class MmsProxy<K extends MmsMetrics> implements LifeCycle {
 
     protected MmsMetadata metadata;
@@ -41,9 +46,9 @@ public abstract class MmsProxy<K extends MmsMetrics> implements LifeCycle {
         if (Objects.isNull(newMetadata)) {
             return;
         }
-        MmsLogger.log.info("metadata {} change notified", newMetadata);
+        MmsLogger.log.info("zk中mq的元数据发生了变化 当前的元数据是{}", newMetadata);
         if (!Objects.equals(MmsProxy.this.metadata.getClusterMetadata().getBrokerType(), newMetadata.getClusterMetadata().getBrokerType())) {
-            MmsLogger.log.error("BrokerType can't be change for topic or consumergroup when running");
+            MmsLogger.log.error("zk注册中心中mq元数据标识的mq类型发生了变化");
         } else if (MmsProxy.this.metadata.equals(newMetadata)) {
             MmsLogger.log.info("ignore the change, for it's the same with before");
         } else {

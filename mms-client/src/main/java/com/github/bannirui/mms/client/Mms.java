@@ -28,10 +28,13 @@ public class Mms implements LifeCycle {
 
     private static final Mms instance = new Mms();
 
+    /**
+     * 标识mms服务的运行状态
+     */
     protected volatile boolean running;
 
     public boolean isRunning() {
-        return running;
+        return this.running;
     }
 
     public void setRunning(boolean running) {
@@ -39,11 +42,11 @@ public class Mms implements LifeCycle {
     }
 
     private Mms() {
-        logger.info("mms version {} initialized for {}", MmsConst.MMS_VERSION, MmsConst.MMS_IP);
-        running = true;
-        reporter = new MmsStatsReporter();
-        reporter.start(10, TimeUnit.SECONDS);
-        logger.info("mms initialized");
+        logger.info("本机{}开始初始化mss服务 版本是{}", MmsConst.MMS_IP, MmsConst.MMS_VERSION);
+        this.running = true;
+        this.reporter = new MmsStatsReporter();
+        this.reporter.start(10, TimeUnit.SECONDS);
+        logger.info("mms服务初始化成功");
     }
 
     @Override
@@ -61,7 +64,7 @@ public class Mms implements LifeCycle {
             throw new RuntimeException(e);
         }
         running = false;
-        logger.info("mms has been shutdown");
+        logger.info("mms服务成功关闭");
     }
 
     /**
@@ -124,7 +127,7 @@ public class Mms implements LifeCycle {
 
     private void doSubscribe(String consumerGroup, MessageListener listener) {
         if (!running) {
-            logger.error("MMS is not running,will not consume message");
+            logger.error("mms服务不在运行 不能进行订阅");
             return;
         }
         ConsumerFactory.getConsumer(new ConsumerGroup(consumerGroup), new Properties(), listener);
@@ -132,7 +135,7 @@ public class Mms implements LifeCycle {
 
     private void doSubscribe(String consumerGroup, Set<String> tags, MessageListener listener) {
         if (!running) {
-            logger.error("MMS is not running,will not consume message");
+            logger.error("mms服务不在运行 不能进行订阅");
             return;
         }
         ConsumerFactory.getConsumer(new ConsumerGroup(consumerGroup, MmsConst.DEFAULT_CONSUMER, tags), new Properties(), listener);
@@ -140,7 +143,7 @@ public class Mms implements LifeCycle {
 
     private void doSubscribe(String consumerGroup, Set<String> tags, MessageListener listener, Properties properties) {
         if (!running) {
-            logger.error("MMS is not running,will not consume message");
+            logger.error("mms服务不在运行 不能进行订阅");
             return;
         }
         ConsumerFactory.getConsumer(new ConsumerGroup(consumerGroup, MmsConst.DEFAULT_CONSUMER, tags), properties, listener);
@@ -148,29 +151,25 @@ public class Mms implements LifeCycle {
 
     private void doSendOneway(String topic, SimpleMessage simpleMessage) {
         if (!running) {
-            logger.warn("MMS is not running,will not send message");
+            logger.error("mms服务不在运行 不能进行发送");
             return;
         }
-        Producer producer = ProducerFactory.getProducer(topic);
-        producer.oneway(new MmsMessage(simpleMessage));
+        ProducerFactory.getProducer(topic).oneway(new MmsMessage(simpleMessage));
     }
 
     private SendResult doSendSync(String topic, SimpleMessage simpleMessage, Properties properties) {
         if (!running) {
-            logger.warn("MMS is not running,will not send message");
-            return SendResult.buildErrorResult("MMS is not running");
+            logger.error("mms服务不在运行 不能进行发送");
+            return SendResult.buildErrorResult("mms服务不在运行");
         }
-        Producer producer = ProducerFactory.getProducer(topic, properties);
-        return producer.syncSend(new MmsMessage(simpleMessage));
+        return ProducerFactory.getProducer(topic, properties).syncSend(new MmsMessage(simpleMessage));
     }
 
     private void doSendAsync(String topic, SimpleMessage simpleMessage, Properties properties, SendCallback callBack) {
         if (!running) {
-            logger.warn("MMS is not running,will not send message");
+            logger.error("mms服务不在运行 不能进行发送");
             return;
         }
-        Producer producer = ProducerFactory.getProducer(topic, properties);
-        producer.asyncSend(new MmsMessage(simpleMessage), callBack);
+        ProducerFactory.getProducer(topic, properties).asyncSend(new MmsMessage(simpleMessage), callBack);
     }
 }
-
