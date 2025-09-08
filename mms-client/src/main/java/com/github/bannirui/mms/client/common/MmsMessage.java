@@ -46,6 +46,12 @@ public class MmsMessage extends SimpleMessage {
     public Map<String, String> getProperties() {
         return properties;
     }
+
+    @Override
+    public String toString() {
+        return "MmsMessage{" +
+                "sendType=" + sendType +
+                ", properties=" + properties +
+                '}' + super.toString();
+    }
 }
-
-

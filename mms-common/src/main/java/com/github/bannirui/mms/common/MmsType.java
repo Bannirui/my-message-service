@@ -3,7 +3,7 @@ package com.github.bannirui.mms.common;
 public enum MmsType {
 
     TOPIC("topic"),
-    CONSUMER_GROUP("consumergroup");
+    CONSUMER_GROUP("consumerGroup");
 
     private String name;
 

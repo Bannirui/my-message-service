@@ -6,10 +6,7 @@ import com.github.bannirui.mms.client.consumer.ConsumerFactory;
 import com.github.bannirui.mms.client.consumer.ConsumerGroup;
 import com.github.bannirui.mms.client.consumer.MessageListener;
 import com.github.bannirui.mms.client.metrics.MmsStatsReporter;
-import com.github.bannirui.mms.client.producer.Producer;
-import com.github.bannirui.mms.client.producer.ProducerFactory;
-import com.github.bannirui.mms.client.producer.SendCallback;
-import com.github.bannirui.mms.client.producer.SendResult;
+import com.github.bannirui.mms.client.producer.*;
 import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
@@ -154,7 +151,8 @@ public class Mms implements LifeCycle {
             logger.error("mms服务不在运行 不能进行发送");
             return;
         }
-        ProducerFactory.getProducer(topic).oneway(new MmsMessage(simpleMessage));
+        // todo 收集指标
+        // ProducerFactory.getProducer(topic).oneway(new MmsMessage(simpleMessage));
     }
 
     private SendResult doSendSync(String topic, SimpleMessage simpleMessage, Properties properties) {
@@ -162,7 +160,10 @@ public class Mms implements LifeCycle {
             logger.error("mms服务不在运行 不能进行发送");
             return SendResult.buildErrorResult("mms服务不在运行");
         }
-        return ProducerFactory.getProducer(topic, properties).syncSend(new MmsMessage(simpleMessage));
+        ProducerProxy producer = ProducerFactory.getProducer(topic, properties);
+        SendResult ret = producer.syncSend(new MmsMessage(simpleMessage));
+        logger.info("生产者代理对象{}发送结果{}", producer, ret);
+        return ret;
     }
 
     private void doSendAsync(String topic, SimpleMessage simpleMessage, Properties properties, SendCallback callBack) {

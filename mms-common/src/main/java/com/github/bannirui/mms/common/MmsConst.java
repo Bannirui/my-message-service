@@ -22,15 +22,11 @@ public class MmsConst {
     public static class STATISTICS {
         public static final String STATISTICS_CLUSTER_NAME = "statistic_cluster";
         public static final String STATISTICS_METADATA_NAME = "statisticsLogger";
-        public static final String STATISTICS_TOPIC_PRODUCERINFO = "statistic_topic_producerinfo";
-        public static final String STATISTICS_TOPIC_CONSUMERINFO = "statistic_topic_consumerinfo";
-        public static final String STATISTICS_TOPIC_KAFKA_CONSUMERINFO = "statistic_topic_kafka_consumerinfo";
-        public static final String STATISTICS_TOPIC_KAFKA_PRODUCERINFO = "statistic_topic_kafka_producerinfo";
-        public static final String CHECKSTATUS_TOPIC_NAME = "checkstatus_topic";
-        public static final String STATISTICS_CONSUMER_KAFKA_PRODUCERINFO = "statistic_consumer_kafka_producerinfo";
-        public static final String STATISTICS_CONSUMER_KAFKA_CONSUMERINFO = "statistic_consumer_kafka_consumerinfo";
-        public static final String STATISTICS_CONSUMER_PRODUCERINFO = "statistic_consumer_producerInfo";
-        public static final String STATISTICS_CONSUMER_CONSUMERINFO = "statistic_consumer_consumerInfo";
+        public static final String STATISTICS_TOPIC_PRODUCER_INFO = "statistic_topic_producer_info";
+        public static final String STATISTICS_TOPIC_CONSUMER_INFO = "statistic_topic_consumer_info";
+        public static final String CHECK_STATUS_TOPIC_NAME = "check_status_topic";
+        public static final String STATISTICS_CONSUMER_PRODUCER_INFO = "statistic_consumer_producer_info";
+        public static final String STATISTICS_CONSUMER_CONSUMER_INFO = "statistic_consumer_consumer_info";
         public static final String PING_TOPIC_NAME = "statistic_ping_topic";
         public static final String PING_CONSUMER_NAME = "statistic_ping_consumer";
     }
@@ -45,10 +41,10 @@ public class MmsConst {
          */
         public static final String MMS_STARTUP_PARAM = "mms_zookeeper_register";
         public static final String ENV = "env";
-        public static final String ROOT_ZKPATH = "/mms";
-        public static final String CLUSTER_ZKPATH = ROOT_ZKPATH + "/cluster";
-        public static final String TOPIC_ZKPATH = ROOT_ZKPATH + "/topic";
-        public static final String CONSUMERGROUP_ZKPATH = ROOT_ZKPATH + "/consumergroup";
+        public static final String ROOT_ZK_PATH = "/mms";
+        public static final String CLUSTER_ZK_PATH = ROOT_ZK_PATH + "/cluster";
+        public static final String TOPIC_ZK_PATH = ROOT_ZK_PATH + "/topic";
+        public static final String CONSUMER_GROUP_ZK_PATH = ROOT_ZK_PATH + "/consumerGroup";
         public static final String ZK_FIELD_CLUSTERNAME = "clusterName";
         public static final String ZK_FIELD_BOOTADDDR = "bootAddr";
         public static final String ZK_FIELD_BROKERTYPE = "brokerType";

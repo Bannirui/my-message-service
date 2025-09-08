@@ -114,7 +114,7 @@ public abstract class ConsumerProxy<T> extends MmsProxy<MmsConsumerMetrics> impl
             if (StringUtils.isEmpty(metadata.getStatisticsLogger()) ||
                 StatsLoggerType.MESSAGE.getName().equalsIgnoreCase(metadata.getStatisticsLogger())) {
                 StatsInfo info = mmsMetrics.reportMessageStatistics();
-                Mms.sendOneway(MmsConst.STATISTICS.STATISTICS_TOPIC_CONSUMERINFO, new SimpleMessage(JSON.toJSONBytes(info)));
+                Mms.sendOneway(MmsConst.STATISTICS.STATISTICS_TOPIC_CONSUMER_INFO, new SimpleMessage(JSON.toJSONBytes(info)));
             } else {
                 MmsLogger.statisticLog.info(mmsMetrics.reportLogStatistics());
             }

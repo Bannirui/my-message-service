@@ -4,7 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.github.bannirui.mms.client.Mms;
 import com.github.bannirui.mms.client.MmsProxy;
 import com.github.bannirui.mms.client.common.SimpleMessage;
-import com.github.bannirui.mms.client.metrics.MmsProducerMetrics;
+import com.github.bannirui.mms.client.metrics.ProducerMetrics;
+import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.common.StatisticLoggerType;
 import com.github.bannirui.mms.logger.MmsLogger;
@@ -19,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * 生产者
  */
-public abstract class ProducerProxy extends MmsProxy<MmsProducerMetrics> implements Producer {
+public abstract class ProducerProxy extends MmsProxy<ProducerMetrics> implements Producer {
     Properties customizedProperties;
     protected static final String MQ_TAG;
     protected static final String MQ_COLOR;
@@ -37,11 +38,11 @@ public abstract class ProducerProxy extends MmsProxy<MmsProducerMetrics> impleme
     }
 
     public ProducerProxy(MmsMetadata metadata, boolean order, String name) {
-        super(metadata, order, new MmsProducerMetrics(metadata.getName(), name));
+        super(metadata, order, new ProducerMetrics(metadata.getName(), name));
     }
 
     public ProducerProxy(MmsMetadata metadata, boolean order, String name, Properties properties) {
-        super(metadata, order, new MmsProducerMetrics(metadata.getName(), name));
+        super(metadata, order, new ProducerMetrics(metadata.getName(), name));
         this.customizedProperties = properties;
     }
 
@@ -79,7 +80,7 @@ public abstract class ProducerProxy extends MmsProxy<MmsProducerMetrics> impleme
                 MmsLogger.log.info(this.mmsMetrics.reportLogStatistics());
             } else {
                 StatsInfo info = this.mmsMetrics.reportMessageStatistics();
-                Mms.sendOneway("statistic_topic_producerinfo", new SimpleMessage(JSON.toJSONBytes(info)));
+                 Mms.sendOneway(MmsConst.Measurement.STATISTIC_TOPIC_PRODUCER_INFO, new SimpleMessage(JSON.toJSONBytes(info)));
             }
         }
     }

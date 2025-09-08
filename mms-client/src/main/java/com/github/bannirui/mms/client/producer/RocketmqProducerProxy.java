@@ -8,11 +8,11 @@ import com.github.bannirui.mms.common.MmsConst;
 import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.MmsMetadata;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 
+@Slf4j
 public class RocketmqProducerProxy extends ProducerProxy {
     private static final MessageQueueSelector hashSelector;
     DefaultMQProducer producer;
@@ -92,58 +93,58 @@ public class RocketmqProducerProxy extends ProducerProxy {
     @Override
     public SendResult syncSend(MmsMessage mmsMessage) {
         if (!this.running) {
+            log.error("当前Rocket生产者不在运行中 不能发送消息");
             return SendResult.FAILURE_NOTRUNNING;
         }
         boolean succeed = false;
         SendResult ans;
         try {
             Message message = this.buildMessage(mmsMessage);
+            log.info("要发送的Rocket消息是{}", message);
             if (mmsMessage.getDelayLevel() >= 1 && Arrays.stream(MsgConsumedStatus.values()).anyMatch((l) ->
                 l.getLevel() == mmsMessage.getDelayLevel())) {
                 message.setDelayTimeLevel(mmsMessage.getDelayLevel());
             }
             long startTime = System.currentTimeMillis();
-            org.apache.rocketmq.client.producer.SendResult send;
+            org.apache.rocketmq.client.producer.SendResult sendRet;
             if (StringUtils.isEmpty(message.getKeys())) {
-                send = this.producer.send(message);
+                sendRet = this.producer.send(message);
             } else {
-                send = this.producer.send(message, hashSelector, message.getKeys());
+                sendRet = this.producer.send(message, hashSelector, message.getKeys());
             }
-            if (send.getSendStatus().equals(SendStatus.SEND_OK)) {
+            log.info("消息{}的发送结果是{}", message, sendRet);
+            if (Objects.equals(sendRet.getSendStatus(), SendStatus.SEND_OK)) {
+                log.info("消息{}发送成功", message);
                 long duration = System.currentTimeMillis() - startTime;
                 this.mmsMetrics.sendCostRate().update(duration, TimeUnit.MILLISECONDS);
                 succeed = true;
                 this.mmsMetrics.getDistribution().markTime(duration);
-                return SendResult.buildSuccessResult(send.getQueueOffset(), send.getOffsetMsgId(), send.getMessageQueue().getTopic(), send.getMessageQueue().getQueueId());
+                return SendResult.buildSuccessResult(sendRet.getQueueOffset(), sendRet.getOffsetMsgId(), sendRet.getMessageQueue().getTopic(), sendRet.getMessageQueue().getQueueId());
             }
-            if (!send.getSendStatus().equals(SendStatus.FLUSH_DISK_TIMEOUT) && !send.getSendStatus().equals(SendStatus.FLUSH_SLAVE_TIMEOUT)) {
+            if (!Objects.equals(sendRet.getSendStatus(), SendStatus.FLUSH_DISK_TIMEOUT)
+                    && !Objects.equals(sendRet.getSendStatus(), SendStatus.FLUSH_SLAVE_TIMEOUT)) {
                 this.mmsMetrics.messageFailureRate().mark();
-                MmsLogger.log.error("syncSend topic {} failed slave not exist ", this.metadata.getName());
+                MmsLogger.log.error("同步发送消息{}失败", this.metadata.getName());
                 return SendResult.FAILURE_TIMEOUT;
             }
             this.mmsMetrics.messageFailureRate().mark();
-            MmsLogger.log.error("syncSend topic {} timeout for {} ", this.metadata.getName(), send.getSendStatus().name());
+            MmsLogger.log.error("同步发送消息{}失败 失败原因是{}", this.metadata.getName(), sendRet.getSendStatus().name());
             return SendResult.FAILURE_TIMEOUT;
         } catch (MQClientException e) {
-            MmsLogger.log.error("send failed for ", e);
-            ans = SendResult.buildErrorResult("syncSend message MQClientException: " + e.getMessage());
-            return ans;
+            MmsLogger.log.error("发送异常", e);
+            ans = SendResult.buildErrorResult("发送异常 " + e.getMessage());
         } catch (RemotingTimeoutException e) {
-            MmsLogger.log.error("send failed for ", e);
+            MmsLogger.log.error("发送异常", e);
             ans = SendResult.FAILURE_TIMEOUT;
         } catch (RemotingException e) {
-            MmsLogger.log.error("send failed for ", e);
-            ans = SendResult.buildErrorResult("syncSend message RemotingException: " + e.getMessage());
-            return ans;
+            MmsLogger.log.error("发送异常", e);
+            ans = SendResult.buildErrorResult("发送异常 " + e.getMessage());
         } catch (MQBrokerException e) {
-            MmsLogger.log.error("send failed for ", e);
-            ans = SendResult.buildErrorResult("syncSend message MQBrokerException: " + e.getMessage());
-            return ans;
+            MmsLogger.log.error("发送异常", e);
+            ans = SendResult.buildErrorResult("发送异常 " + e.getMessage());
         } catch (InterruptedException e) {
-            MmsLogger.log.error("send failed for ", e);
-            MmsLogger.log.error("produce syncSend and wait interuptted", e);
-            ans = SendResult.FAILURE_INTERUPRION;
-            return ans;
+            MmsLogger.log.error("发送异常", e);
+            ans = SendResult.FAILURE_INTERRUPTED;
         } finally {
             if (succeed) {
                 this.mmsMetrics.messageSuccessRate().mark();

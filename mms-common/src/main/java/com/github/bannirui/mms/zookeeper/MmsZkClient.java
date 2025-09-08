@@ -89,7 +89,7 @@ public class MmsZkClient extends ZooKeeper {
      */
     public void writeClusterMetadata(String clusterName, String zkMeta) {
         // 节点路径
-        String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, clusterName);
+        String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZK_PATH, clusterName);
         try {
             // 确保父节点存在
             this.write2Zk(path, zkMeta, CreateMode.PERSISTENT);
@@ -106,7 +106,7 @@ public class MmsZkClient extends ZooKeeper {
      */
     public void writeTopicMetadata(String topicName, String topicZkData) {
         try {
-            String path = MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, topicName);
+            String path = MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZK_PATH, topicName);
             this.write2Zk(path, topicZkData, CreateMode.PERSISTENT);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -121,7 +121,7 @@ public class MmsZkClient extends ZooKeeper {
      */
     public void writeConsumerGroupMetadata(String cgName, String cgZkData) {
         try {
-            String path = MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, cgName);
+            String path = MmsZkClient.buildPath(MmsConst.ZK.CONSUMER_GROUP_ZK_PATH, cgName);
             this.write2Zk(path, cgZkData, CreateMode.PERSISTENT);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -136,7 +136,7 @@ public class MmsZkClient extends ZooKeeper {
     public void deleteCluster(String clusterName) {
         try {
             // 不指定版本
-            super.delete(MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, clusterName), -1);
+            super.delete(MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZK_PATH, clusterName), -1);
         } catch (InterruptedException | KeeperException e) {
             throw new RuntimeException(e);
         }
@@ -150,7 +150,7 @@ public class MmsZkClient extends ZooKeeper {
     public void deleteTopic(String topicName) {
         try {
             // 不指定版本
-            super.delete(MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, topicName), -1);
+            super.delete(MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZK_PATH, topicName), -1);
         } catch (InterruptedException | KeeperException e) {
             throw new RuntimeException(e);
         }
@@ -164,7 +164,7 @@ public class MmsZkClient extends ZooKeeper {
     public void deleteConsumerGroup(String consumerGroupName) {
         try {
             // 不指定版本
-            super.delete(MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, consumerGroupName), -1);
+            super.delete(MmsZkClient.buildPath(MmsConst.ZK.CONSUMER_GROUP_ZK_PATH, consumerGroupName), -1);
         } catch (InterruptedException | KeeperException e) {
             throw new RuntimeException(e);
         }
@@ -178,7 +178,7 @@ public class MmsZkClient extends ZooKeeper {
      */
     public ClusterMetadata readClusterMetadata(String clusterName) {
         try {
-            String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, clusterName);
+            String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZK_PATH, clusterName);
             if (Objects.isNull(super.exists(path, false))) {
                 logger.error("cluster {} metadata is empty", clusterName);
                 throw MmsException.CLUSTER_INFO_EXCEPTION;
@@ -216,7 +216,7 @@ public class MmsZkClient extends ZooKeeper {
      */
     public boolean checkPath(MmsType type, String name) {
         boolean isTopic = MmsType.TOPIC.getName().equalsIgnoreCase(type.getName());
-        String zkPath = isTopic ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, name);
+        String zkPath = isTopic ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZK_PATH, name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMER_GROUP_ZK_PATH, name);
         try {
             Stat exists = super.exists(zkPath, false);
             return Objects.nonNull(exists);
@@ -242,7 +242,7 @@ public class MmsZkClient extends ZooKeeper {
             // 派生类
             MmsMetadata metadata = isTopic ? new TopicMetadata() : new ConsumerGroupMetadata();
             // zk节点路径
-            String zkPath = isTopic ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, name);
+            String zkPath = isTopic ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZK_PATH, name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMER_GROUP_ZK_PATH, name);
             Stat exists = super.exists(zkPath, false);
             if (Objects.isNull(exists)) {
                 logger.error("尝试从zk注册中心获取{}的元数据 zk路径{}不存在", type, zkPath);

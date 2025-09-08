@@ -55,7 +55,7 @@ public class SendResult {
     public static SendResult SUCCESS = new SendResult(200, null);
     public static SendResult FAILURE_NOTRUNNING = new SendResult(401, "client状态不是running");
     public static SendResult FAILURE_TIMEOUT = new SendResult(402, "客户端发送超时");
-    public static SendResult FAILURE_INTERUPRION = new SendResult(403, "等待线程被中断");
+    public static SendResult FAILURE_INTERRUPTED = new SendResult(403, "等待线程被中断");
 
     public static SendResult buildErrorResult(String msg) {
         return new SendResult(404, msg);

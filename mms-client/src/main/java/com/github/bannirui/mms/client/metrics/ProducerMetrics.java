@@ -7,9 +7,9 @@ import com.github.bannirui.mms.stats.StatsInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MmsProducerMetrics extends MmsMetrics {
+public class ProducerMetrics extends MmsMetrics {
 
-    public static final Logger logger = LoggerFactory.getLogger(MmsProducerMetrics.class);
+    public static final Logger logger = LoggerFactory.getLogger(ProducerMetrics.class);
     private final Meter messageSuccessRate;
     private final Meter messageFailureRate;
     private final Timer sendCostRate;
@@ -23,7 +23,7 @@ public class MmsProducerMetrics extends MmsMetrics {
 
     private Distribution distribution;
 
-    public MmsProducerMetrics(String clientName, String mmsName) {
+    public ProducerMetrics(String clientName, String mmsName) {
         super(clientName, mmsName);
         this.messageSuccessRate = MmsMetricsRegistry.REGISTRY.meter(
             MmsMetricsRegistry.buildName(PRODUCER_METRIC_GROUP, "messageSuccessRate", clientName, mmsName));

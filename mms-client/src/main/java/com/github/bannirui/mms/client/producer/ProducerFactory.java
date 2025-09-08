@@ -6,12 +6,14 @@ import com.github.bannirui.mms.common.MmsException;
 import com.github.bannirui.mms.logger.MmsLogger;
 import com.github.bannirui.mms.metadata.TopicMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
+import org.apache.commons.collections.MapUtils;
+import org.slf4j.Logger;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
 
 public class ProducerFactory {
 
@@ -31,7 +33,8 @@ public class ProducerFactory {
     }
 
     public static ProducerProxy getProducer(String topic, Properties properties) {
-        if (Objects.isNull(properties) || properties.isEmpty()) {
+        logger.info("开始为主题{}创建生产者代理对象", topic);
+        if (MapUtils.isEmpty(properties)) {
             return getProducer(topic);
         }
         return doGetProducer(topic, MmsConst.DEFAULT_PRODUCER, properties);
@@ -65,8 +68,9 @@ public class ProducerFactory {
 
     /**
      * 尝试从缓存中取代理对象 没有就从注册中心根据topic拿到mq的元数据生成代理对象缓存起来
-     * @param topic topic的名字
-     * @param name 生产者的名字
+     *
+     * @param topic      topic的名字
+     * @param name       生产者的名字
      * @param properties 生产者的配置
      * @return 生产者的代理对象
      */

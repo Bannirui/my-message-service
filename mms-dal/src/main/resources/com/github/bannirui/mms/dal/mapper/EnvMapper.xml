@@ -69,4 +69,25 @@
                  left join server on host.id=server.host_id
         where env.status = 2
     </select>
+    <select id="mqMetaDataByEnvId" resultType="com.github.bannirui.mms.dal.model.MqMetaDataExt">
+        select
+            server.name as clusterName,
+            host.host as clusterHost,
+            server.port as clusterPort,
+            server.type as clusterType,
+            server.status as clusterStatus,
+            topic.name as topicName,
+            topic.status as topicStatus,
+            consumer.name as consumerName,
+            consumer.status as consumerStatus,
+            consumer.consumer_broadcast as consumerBroadcast,
+            consumer.consumer_from_min as consumerFromMin
+        from env
+                 left join host on host.env_id = env.id
+                 left join server on server.host_id = host.id
+                 left join topic_ref on topic_ref.server_id=server.id
+                 left join topic on topic.id=topic_ref.topic_id
+                 left join consumer on consumer.topic_id=topic.id
+        where server.type in (1,2) and env.id = #{envId}
+    </select>
 </mapper>

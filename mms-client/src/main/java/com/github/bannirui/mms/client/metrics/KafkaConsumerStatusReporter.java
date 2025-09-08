@@ -95,7 +95,7 @@ public class KafkaConsumerStatusReporter {
                     logger.error("reportConsumerStatus error:  client-id {} maybe wrong ", clientIdName);
                 }
             }
-            Mms.sendOneway("statistic_topic_kafka_consumerinfo", new SimpleMessage(JSON.toJSONBytes(consumerStatistics, new SerializerFeature[0])));
+            Mms.sendOneway(MmsConst.Measurement.STATISTIC_TOPIC_CONSUMER_INFO, new SimpleMessage(JSON.toJSONBytes(consumerStatistics, new SerializerFeature[0])));
         } catch (Exception e) {
             logger.error("report kafka consumer status error", e);
         }

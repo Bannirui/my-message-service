@@ -1,5 +1,7 @@
 package com.github.bannirui.mms.client.common;
 
+import java.util.Arrays;
+
 public class SimpleMessage {
     // 排序和分片key
     private String key;
@@ -54,6 +56,16 @@ public class SimpleMessage {
 
     public void setDelayLevel(int delayLevel) {
         this.delayLevel = delayLevel;
+    }
+
+    @Override
+    public String toString() {
+        return "SimpleMessage{" +
+                "key='" + key + '\'' +
+                ", tags='" + tags + '\'' +
+                ", delayLevel=" + delayLevel +
+                ", payload=" + Arrays.toString(payload) +
+                '}';
     }
 }
 

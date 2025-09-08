@@ -1,6 +1,8 @@
 package com.github.bannirui.mms.common;
 
+import com.github.bannirui.mms.client.common.ConsumeFromWhere;
 import com.github.bannirui.mms.metadata.ClusterMetadata;
+import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.metadata.TopicMetadata;
 import com.github.bannirui.mms.service.router.ZkRouter;
 import org.slf4j.Logger;
@@ -40,6 +42,27 @@ public class ZkRegister {
         metadata.setName(topicName);
         metadata.setType(MmsType.TOPIC.getName());
         this.zkRouter.writeTopicInfo(metadata);
+    }
+    public void registerConsumer2Zk(String clusterName, Integer clusterType, String consumerName, String topicName, boolean supportBroadcast, boolean supportConsumeFromMin) {
+        ConsumerGroupMetadata consumerMetadata = new ConsumerGroupMetadata();
+        consumerMetadata.setName(consumerName);
+        consumerMetadata.setType(MmsType.CONSUMER_GROUP.getName());
+        consumerMetadata.setBindingTopic(topicName);
+        if (supportConsumeFromMin) {
+            consumerMetadata.setConsumeFrom(ConsumeFromWhere.EARLIEST.getName());
+        } else {
+            consumerMetadata.setConsumeFrom(ConsumeFromWhere.LATEST.getName());
+        }
+        if (supportBroadcast) {
+            consumerMetadata.setBroadcast("true");
+        } else {
+            consumerMetadata.setBroadcast("false");
+        }
+        ClusterMetadata clusterMetadata = new ClusterMetadata();
+        clusterMetadata.setClusterName(clusterName);
+        consumerMetadata.setClusterMetadata(clusterMetadata);
+        clusterMetadata.setBrokerType(clusterType);
+        this.zkRouter.writeConsumerInfo(consumerMetadata);
     }
 
     /**

@@ -99,7 +99,7 @@ public class KafkaProducerProxy extends ProducerProxy {
                 return SendResult.buildSuccessResult(metadata.offset(), "", metadata.topic(), metadata.partition());
             } catch (InterruptedException e) {
                 MmsLogger.log.error("produce syncSend and wait interuptted", e);
-                return SendResult.FAILURE_INTERUPRION;
+                return SendResult.FAILURE_INTERRUPTED;
             } catch (ExecutionException e) {
                 MmsLogger.log.error("produce syncSend and wait got exception", e);
                 if (e.getCause() instanceof TimeoutException) {

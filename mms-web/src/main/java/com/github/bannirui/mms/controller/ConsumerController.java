@@ -2,7 +2,9 @@ package com.github.bannirui.mms.controller;
 
 import com.github.bannirui.mms.client.common.ConsumeFromWhere;
 import com.github.bannirui.mms.common.HostServerType;
+import com.github.bannirui.mms.common.MmsType;
 import com.github.bannirui.mms.common.ResourceStatus;
+import com.github.bannirui.mms.common.ZkRegister;
 import com.github.bannirui.mms.dal.mapper.ConsumerMapper;
 import com.github.bannirui.mms.dal.mapper.TopicMapper;
 import com.github.bannirui.mms.dal.model.Consumer;
@@ -46,6 +48,8 @@ public class ConsumerController {
     ZkRouter zkRouter;
     @Autowired
     private MessageAdminManagerAdapt messageAdminManagerAdapt;
+    @Autowired
+    private ZkRegister zkRegister;
 
     /**
      * 申请consumer
@@ -104,33 +108,12 @@ public class ConsumerController {
         for (ConsumerExtTopicAndEnv x : consumers) {
             MmsContextManager.setEnv(x.getEnvId());
             // 注册到zk
-            ConsumerGroupMetadata consumerMetadata = new ConsumerGroupMetadata();
-            Integer topicType = x.getTopicType();
-            HostServerType type = HostServerType.getByCode(topicType);
-            consumerMetadata.setName(x.getConsumerName());
-            consumerMetadata.setType(type.getDesc());
-            consumerMetadata.setBindingTopic(x.getTopicName());
             boolean supportConsumeFromMin = Objects.equals(x.getConsumerFromMin(), 1);
-            if (supportConsumeFromMin) {
-                consumerMetadata.setConsumeFrom(ConsumeFromWhere.EARLIEST.getName());
-            } else {
-                consumerMetadata.setConsumeFrom(ConsumeFromWhere.LATEST.getName());
-            }
             boolean supportBroadcast = Objects.equals(x.getConsumerBroadcast(), 1);
-            if (supportBroadcast) {
-                consumerMetadata.setBroadcast("true");
-            } else {
-                consumerMetadata.setBroadcast("false");
-            }
-            ClusterMetadata clusterMetadata = new ClusterMetadata();
-            consumerMetadata.setName(x.getClusterName());
-            consumerMetadata.setType(type.getDesc());
-            consumerMetadata.setClusterMetadata(clusterMetadata);
-            zkRouter.writeConsumerInfo(consumerMetadata);
+            zkRegister.registerConsumer2Zk(x.getClusterName(), x.getTopicType(), x.getConsumerName(), x.getTopicName(), supportBroadcast, supportConsumeFromMin);
             // 注册到mq broker
             MiddlewareProcess middlewareManager = this.messageAdminManagerAdapt.getOrCreateAdmin(x.getClusterName());
             middlewareManager.createConsumerGroup(x.getConsumerName(), supportBroadcast, supportConsumeFromMin);
-
         }
         this.consumerMapper.updateById(new Consumer() {{
             setId(consumerId);

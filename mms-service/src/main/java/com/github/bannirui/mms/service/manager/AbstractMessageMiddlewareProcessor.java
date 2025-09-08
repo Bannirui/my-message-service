@@ -44,7 +44,7 @@ public abstract class AbstractMessageMiddlewareProcessor implements MiddlewarePr
     protected abstract void destroy();
 
     private void nodeChangeListener() {
-        String targetPath = String.join("/", MmsConst.ZK.CLUSTER_ZKPATH, this.clusterName);
+        String targetPath = String.join("/", MmsConst.ZK.CLUSTER_ZK_PATH, this.clusterName);
         this.zkClient.register(watchedEvent -> {
             String path = watchedEvent.getPath();
             if (Objects.isNull(path) || !path.startsWith(targetPath)) {

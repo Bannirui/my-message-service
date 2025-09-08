@@ -6,8 +6,6 @@ import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Objects;
-
 /**
  * 注册中心存储的my message service的元数据
  * <ul>
@@ -24,10 +22,11 @@ public class MmsMetadata {
      */
     private String type;
     /**
-     * topic的名称作为zk节点名称
+     * topic的名称或者消费组的名称
+     * 作为zk节点名称
      * <ul>
      *     <li>/mms/topic/${name}</li>
-     *     <li>/mms/consumergroup/${name}</li>
+     *     <li>/mms/consumerGroup/${name}</li>
      * </ul>
      */
     private String name;
@@ -39,11 +38,11 @@ public class MmsMetadata {
     private Boolean isEncrypt;
 
     public String getMmsClusterPath() {
-        return MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZKPATH, this.clusterMetadata.getClusterName());
+        return MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZK_PATH, this.clusterMetadata.getClusterName());
     }
 
     public String getMmsPath() {
-        return this.isTopic() ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZKPATH, this.name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMERGROUP_ZKPATH, this.name);
+        return this.isTopic() ? MmsZkClient.buildPath(MmsConst.ZK.TOPIC_ZK_PATH, this.name) : MmsZkClient.buildPath(MmsConst.ZK.CONSUMER_GROUP_ZK_PATH, this.name);
     }
 
     public boolean isTopic() {
