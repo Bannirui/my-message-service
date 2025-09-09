@@ -257,4 +257,12 @@ public class RocketmqConsumerProxy extends ConsumerProxy<MessageExt> {
             msg.setBody(MmsCryptoManager.decrypt(msg.getTopic(), msg.getBody()));
         }
     }
+
+    @Override
+    public String toString() {
+        return "RocketmqConsumerProxy{" +
+                "持有的consumer=" + consumer +
+                ", tags=" + tags +
+                '}';
+    }
 }

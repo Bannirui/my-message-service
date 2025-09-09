@@ -223,4 +223,11 @@ public class RocketmqProducerProxy extends ProducerProxy {
         message.getProperties().putAll(properties);
         return message;
     }
+
+    @Override
+    public String toString() {
+        return "RocketmqProducerProxy{" +
+                "持有的producer=" + producer +
+                '}';
+    }
 }

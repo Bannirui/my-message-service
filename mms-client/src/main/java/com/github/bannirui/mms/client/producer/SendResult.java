@@ -71,4 +71,16 @@ public class SendResult {
     public boolean isSucceed() {
         return this.code == 200;
     }
+
+    @Override
+    public String toString() {
+        return "SendResult{" +
+                "code=" + code +
+                ", offset=" + offset +
+                ", msgId='" + msgId + '\'' +
+                ", topic='" + topic + '\'' +
+                ", queueOrPartition=" + queueOrPartition +
+                ", msg='" + msg + '\'' +
+                '}';
+    }
 }

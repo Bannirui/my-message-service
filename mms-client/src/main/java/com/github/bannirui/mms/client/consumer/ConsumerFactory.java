@@ -8,14 +8,18 @@ import com.github.bannirui.mms.metadata.ConsumerGroupMetadata;
 import com.github.bannirui.mms.zookeeper.MmsZkClient;
 import org.slf4j.Logger;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConsumerFactory {
 
+    /**
+     * 缓存消费者代理对象
+     * <ul>
+     *     <li>key mq的consumerGroup+消费者name</li>
+     *     <li>val 消费者代理对象</li>
+     * </ul>
+     */
     private static Map<String, ConsumerProxy> consumers = new ConcurrentHashMap<>();
 
     public static final Logger logger = MmsLogger.log;
@@ -29,29 +33,33 @@ public class ConsumerFactory {
 
     private static ConsumerProxy doGetConsumer(String consumerGroup, String name, Set<String> tags, Properties properties, MessageListener listener) {
         String cacheName = consumerGroup + "_" + name;
-        if (consumers.get(cacheName) == null) {
+        if (!consumers.containsKey(cacheName)) {
             synchronized (ConsumerFactory.class) {
-                if (consumers.get(cacheName) == null) {
-                    ConsumerProxy consumer;
+                if (!consumers.containsKey(cacheName)) {
+                    ConsumerProxy consumerProxy;
                     ConsumerGroupMetadata metadata;
                     try {
+                        // 从zk注册中心拿mq的consumer信息
                         metadata = MmsZkClient.getInstance().readConsumerGroupMetadata(consumerGroup);
                     } catch (Throwable ex) {
-                        logger.error("get consumer metadata error", ex);
+                        logger.error("从zk注册中心读mq消费组失败", ex);
                         throw MmsException.METAINFO_EXCEPTION;
                     }
-                    logger.info("Consumer created {}", metadata.toString());
+                    logger.info("为{}消费组从注册中心拿到的mq元数据是{}", consumerGroup, metadata);
                     boolean isOrderly = false;
                     if (properties.containsKey(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY)) {
                         isOrderly = Boolean.parseBoolean(properties.getProperty(MmsConst.CLIENT_CONFIG.CONSUME_ORDERLY));
                     }
-                    if (HostServerType.ROCKETMQ.equals(metadata.getClusterMetadata().getBrokerType())) {
-                        consumer = new RocketmqConsumerProxy(metadata, isOrderly, name, tags, properties, listener);
+                    if (Objects.equals(HostServerType.ROCKETMQ.getCode(), metadata.getClusterMetadata().getBrokerType())) {
+                        consumerProxy = new RocketmqConsumerProxy(metadata, isOrderly, name, tags, properties, listener);
+                    } else if (Objects.equals(HostServerType.KAFKA.getCode(), metadata.getClusterMetadata().getBrokerType())) {
+                        consumerProxy = new KafkaConsumerProxy(metadata, isOrderly, name, properties, listener);
                     } else {
-                        consumer = new KafkaConsumerProxy(metadata, isOrderly, name, properties, listener);
+                        throw new MmsException("从注册中心拿到的mq类型未知 没办法创建对应消费者");
                     }
-                    consumers.putIfAbsent(cacheName, consumer);
-                    return consumer;
+                    logger.info("为{}消费组创建的消费者代理对象是{}", consumerGroup, consumerProxy);
+                    consumers.putIfAbsent(cacheName, consumerProxy);
+                    return consumerProxy;
                 }
             }
         }
