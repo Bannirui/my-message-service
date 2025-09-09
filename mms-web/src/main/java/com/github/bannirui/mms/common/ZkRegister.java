@@ -30,20 +30,16 @@ public class ZkRegister {
         metadata.setBrokerType(brokerType);
         this.zkRouter.writeClusterInfo(metadata);
     }
-    /**
-     * @param brokerType {@link HostServerType}
-     */
-    public void registerTopic2Zk(String clusterName, String topicName, Integer brokerType) {
+    public void registerTopic2Zk(String clusterName, String topicName) {
         TopicMetadata metadata = new TopicMetadata();
         metadata.setClusterMetadata(new ClusterMetadata() {{
             setClusterName(clusterName);
-            setBrokerType(brokerType);
         }});
         metadata.setName(topicName);
         metadata.setType(MmsType.TOPIC.getName());
         this.zkRouter.writeTopicInfo(metadata);
     }
-    public void registerConsumer2Zk(String clusterName, Integer clusterType, String consumerName, String topicName, boolean supportBroadcast, boolean supportConsumeFromMin) {
+    public void registerConsumer2Zk(String clusterName, String consumerName, String topicName, boolean supportBroadcast, boolean supportConsumeFromMin) {
         ConsumerGroupMetadata consumerMetadata = new ConsumerGroupMetadata();
         consumerMetadata.setName(consumerName);
         consumerMetadata.setType(MmsType.CONSUMER_GROUP.getName());
@@ -61,7 +57,6 @@ public class ZkRegister {
         ClusterMetadata clusterMetadata = new ClusterMetadata();
         clusterMetadata.setClusterName(clusterName);
         consumerMetadata.setClusterMetadata(clusterMetadata);
-        clusterMetadata.setBrokerType(clusterType);
         this.zkRouter.writeConsumerInfo(consumerMetadata);
     }
 

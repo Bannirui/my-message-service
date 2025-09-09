@@ -72,7 +72,7 @@ public class EnvDatasourceService {
                         if (MapUtils.isNotEmpty(topicMap)) {
                             topicMap.forEach((k, v) -> {
                                 logger.info("刷新zk注册信息 topic={}", k);
-                                zkRegister.registerTopic2Zk(v.getClusterName(), k, v.getClusterType());
+                                zkRegister.registerTopic2Zk(v.getClusterName(), k);
                             });
                         }
                         Map<String, MqMetaDataExt> consumerMap = activeClusters.stream().filter(x->StringUtils.isNotEmpty(x.getConsumerName()))
@@ -81,9 +81,9 @@ public class EnvDatasourceService {
                                         Function.identity(),
                                         (oldValue, newValue) -> newValue));
                         if (MapUtils.isNotEmpty(consumerMap)) {
-                            topicMap.forEach((k, v) -> {
+                            consumerMap.forEach((k, v) -> {
                                 logger.info("刷新zk注册信息 consumer={}", k);
-                                zkRegister.registerConsumer2Zk(v.getClusterName(), v.getClusterType(), k, v.getTopicName(), Objects.equals(1, v.getConsumerBroadcast()), Objects.equals(1, v.getConsumerFromMin()));
+                                zkRegister.registerConsumer2Zk(v.getClusterName(), k, v.getTopicName(), Objects.equals(1, v.getConsumerBroadcast()), Objects.equals(1, v.getConsumerFromMin()));
                             });
                         }
                     }

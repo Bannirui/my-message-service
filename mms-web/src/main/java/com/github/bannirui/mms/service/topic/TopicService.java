@@ -191,7 +191,7 @@ public class TopicService {
         if (Objects.equals(ResourceStatus.CREATE_NEW.getCode(), topic.getStatus())
                 || !Objects.equals(server.getId(), curServerId)) {
             this.createTopic(topicConfigInfo);
-            this.zkRegister.registerTopic2Zk(clusterName, topicName, server.getType());
+            this.zkRegister.registerTopic2Zk(clusterName, topicName);
         } else if (!Objects.equals(topic.getPartitions(), newPartitions)) {
             // 仅仅更新分区数 不需要注册到远程配置中心
             this.updateTopic(topicConfigInfo);

@@ -110,7 +110,7 @@ public class ConsumerController {
             // 注册到zk
             boolean supportConsumeFromMin = Objects.equals(x.getConsumerFromMin(), 1);
             boolean supportBroadcast = Objects.equals(x.getConsumerBroadcast(), 1);
-            zkRegister.registerConsumer2Zk(x.getClusterName(), x.getTopicType(), x.getConsumerName(), x.getTopicName(), supportBroadcast, supportConsumeFromMin);
+            zkRegister.registerConsumer2Zk(x.getClusterName(), x.getConsumerName(), x.getTopicName(), supportBroadcast, supportConsumeFromMin);
             // 注册到mq broker
             MiddlewareProcess middlewareManager = this.messageAdminManagerAdapt.getOrCreateAdmin(x.getClusterName());
             middlewareManager.createConsumerGroup(x.getConsumerName(), supportBroadcast, supportConsumeFromMin);

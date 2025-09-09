@@ -159,7 +159,7 @@ public class MmsZkClient extends ZooKeeper {
     /**
      * 删除ConsumerGroup数据
      *
-     * @param consumerGroupName ConsumerGroup子节点名称 /mms/consumergroup/${ConsumerGroup}
+     * @param consumerGroupName ConsumerGroup子节点名称 /mms/consumerGroup/${ConsumerGroup}
      */
     public void deleteConsumerGroup(String consumerGroupName) {
         try {
@@ -180,12 +180,12 @@ public class MmsZkClient extends ZooKeeper {
         try {
             String path = MmsZkClient.buildPath(MmsConst.ZK.CLUSTER_ZK_PATH, clusterName);
             if (Objects.isNull(super.exists(path, false))) {
-                logger.error("cluster {} metadata is empty", clusterName);
+                logger.error("zk中不存在集群{}的路径", clusterName);
                 throw MmsException.CLUSTER_INFO_EXCEPTION;
             }
             byte[] data = super.getData(path, false, null);
             if (Objects.isNull(data)) {
-                logger.error("cluster {} metadata is empty", clusterName);
+                logger.error("从zk中拿到的集群{}信息是空的", clusterName);
                 throw MmsException.CLUSTER_INFO_EXCEPTION;
             }
             String clusterData = new String(data, StandardCharsets.UTF_8);
@@ -198,7 +198,7 @@ public class MmsZkClient extends ZooKeeper {
                 metadata.setClusterName(clusterName);
                 return metadata;
             } catch (IOException e) {
-                logger.error("parse cluster {}  data info {} error", clusterName, clusterData);
+                logger.error("从zk中拿到集群{}的信息是{} 解析失败", clusterName, clusterData);
                 throw MmsException.CLUSTER_INFO_EXCEPTION;
             }
         } catch (Exception e) {
@@ -302,7 +302,7 @@ public class MmsZkClient extends ZooKeeper {
     /**
      * zk中保存的ConsumerGroup元数据
      *
-     * @param name 子节点名称 路径是/mms/consumergroup/${name}
+     * @param name 子节点名称 路径是/mms/consumerGroup/${name}
      * @return consumer group数据
      */
     public ConsumerGroupMetadata readConsumerGroupMetadata(String name) {
